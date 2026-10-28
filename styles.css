@@ -16,6 +16,8 @@
 html, body { margin: 0; background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif; }
 body { min-height: 100vh; min-height: 100dvh; }
 button, input { font: inherit; }
+select { font: inherit; color: var(--text); background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px; width: 100%; margin: 8px 0 14px; }
+.mount-label { font-size: 13px; color: var(--muted); }
 button { color: inherit; }
 #app { max-width: 620px; margin: 0 auto; min-height: 100dvh; padding: env(safe-area-inset-top) 16px calc(24px + env(safe-area-inset-bottom)); }
 .topbar { display: flex; align-items: center; justify-content: space-between; padding: 18px 2px 14px; }

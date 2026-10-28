@@ -16,7 +16,7 @@
   <div id="app">
     <header class="topbar">
       <div>
-        <div class="eyebrow">TAV GARAGE</div>
+        <div class="eyebrow">TAV GARAGE · v2.2</div>
         <h1>TavAlign</h1>
       </div>
       <button id="sensorBtn" class="pill primary">Enable sensors</button>
@@ -64,7 +64,7 @@
 
         <div class="card muted-card">
           <h3>Fixture orientation</h3>
-          <p>Keep the phone portrait, top edge up, and screen facing outward. Use the same physical contact points on the rim every time.</p>
+          <p>Choose the phone's position during measurement in Camber: screen facing up or screen facing outward. Keep the phone seated the same way, and use the same fixture contact points each time.</p>
         </div>
       </section>
 
@@ -83,7 +83,7 @@
         </div>
 
         <div class="reading-wrap">
-          <div class="reading-caption">LIVE CAMBER · FORWARD / BACK TILT</div>
+          <div id="camberCaption" class="reading-caption">SCREEN UP · SIGNED FORWARD / BACK TILT</div>
           <div id="camberReading" class="big-reading">—</div>
           <div id="camberStable" class="stability" role="status">Waiting for sensors</div>
           <progress id="camberProgress" class="settle-progress" max="100" value="0" aria-label="Camber settling"></progress>
@@ -95,8 +95,14 @@
         <div data-feedback></div>
 
         <div class="card">
-          <h3>Fixture zero</h3>
-          <p>Keep the phone portrait with its back against the fixture, screen facing outward and parallel to the wheel face. Place the fixture on a known vertical surface, then average the zero. Camber follows forward/back tilt, not sideways lean.</p>
+          <h3>Mount position &amp; zero</h3>
+          <label class="mount-label" for="mountPosition">Screen direction during measurement</label>
+          <select id="mountPosition">
+            <option value="flat">Facing up toward the sky</option>
+            <option value="vertical">Facing outward from the wheel</option>
+          </select>
+          <p id="mountInstructions"></p>
+          <p class="signal-note">Check sign with a known inward lean of the wheel reference. It should read negative; use Invert camber sign if your fixture reverses it.</p>
           <div class="row">
             <button id="zeroCamberBtn" class="pill" disabled>Average fixture zero</button>
             <button id="clearCamberBtn" class="pill">Clear zero</button>
@@ -214,7 +220,7 @@
     <footer>
       <p>Steadier readings, not a calibration guarantee. Repeatability describes consistency, not absolute accuracy. Validate camber and toe against a known gauge or strings.</p>
       <p id="storageNote" role="status"></p>
-      <p id="offlineNote">TavAlign 2.1 · corrected camber axis · works offline after loading</p>
+      <p id="offlineNote">TavAlign 2.2 · screen-up fixture mode · works offline after loading</p>
     </footer>
   </div>
 

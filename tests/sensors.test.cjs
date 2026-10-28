@@ -2,19 +2,19 @@ const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const { Engine, Display, stats, correctedToe, camberFromOrientation } = require('../sensor-engine.js');
 const near = (a, b, tolerance = .005) => assert.ok(Math.abs(a - b) < tolerance, `${a} != ${b}`);
-test('upright screen is zero camber', () => near(camberFromOrientation(90, 0), 0));
+test('upright screen is zero in outward mode', () => near(camberFromOrientation(90, 0, 'vertical'), 0));
 test('forward/back pitch crosses zero with opposite signs', () => {
-  near(camberFromOrientation(92, 0), 2);
-  near(camberFromOrientation(88, 0), -2);
+  near(camberFromOrientation(92, 0, 'vertical'), 2);
+  near(camberFromOrientation(88, 0, 'vertical'), -2);
 });
 test('screen-plane reading is continuous through exactly upright', () => {
-  for (const pitch of [-5, -1, -.01, 0, .01, 1, 5]) near(camberFromOrientation(90 + pitch, 0), pitch);
+  for (const pitch of [-5, -1, -.01, 0, .01, 1, 5]) near(camberFromOrientation(90 + pitch, 0, 'vertical'), pitch);
 });
 test('vertical screen leaning sideways remains zero camber', () => {
   // With a vertical screen and in-plane lean, gamma approaches +/-90.
   for (const beta of [60, 75, 89, 91, 105, 120]) {
-    near(camberFromOrientation(beta, -90), 0);
-    near(camberFromOrientation(beta, 89.999999), 0);
+    near(camberFromOrientation(beta, -90, 'vertical'), 0);
+    near(camberFromOrientation(beta, 89.999999, 'vertical'), 0);
   }
 });
 test('camber is invariant to rotation within the screen plane', () => {
@@ -25,7 +25,7 @@ test('camber is invariant to rotation within the screen plane', () => {
     const gz = -Math.sin(tilt * rad);
     const beta = gz < 0 ? 180 - Math.asin(gy) / rad : Math.asin(gy) / rad;
     const gamma = Math.atan2(-gx / Math.cos(beta * rad), gz / Math.cos(beta * rad)) / rad;
-    near(camberFromOrientation(beta, gamma), tilt);
+    near(camberFromOrientation(beta, gamma, 'vertical'), tilt);
   }
 });
 test('missing orientation components cannot fabricate camber', () => {
@@ -42,6 +42,24 @@ function feed(e, from, to, options = {}) {
     e.orientation(t, gamma(t), alpha(t));
   }
 }
+test('screen-up mounting defaults to zero on a horizontal reference', () => near(camberFromOrientation(0, 0), 0));
+test('screen-up pitch retains sign on both sides of horizontal', () => {
+  for (const pitch of [-5, -3.2, -.01, 0, .01, 3.2, 5]) near(camberFromOrientation(pitch, 0), pitch);
+});
+test('screen-up sideways roll alone produces no forward/back camber', () => {
+  for (const roll of [-20, -10, 0, 10, 20]) near(camberFromOrientation(0, roll), 0);
+});
+test('screen-up mode rejects upright and face-down positions', () => {
+  assert.equal(camberFromOrientation(90, 0), null);
+  assert.equal(camberFromOrientation(180, 0), null);
+});
+test('screen-up pitch projection agrees with a known gravity vector', () => {
+  const rad = Math.PI / 180, pitch = -3.2, roll = 8;
+  const beta = Math.asin(Math.sin(pitch * rad) * Math.cos(roll * rad)) / rad;
+  const gz = Math.cos(pitch * rad) * Math.cos(roll * rad);
+  const gamma = Math.acos(gz / Math.cos(beta * rad)) / rad;
+  near(camberFromOrientation(beta, gamma), pitch);
+});
 function ready(options) { const e = new Engine(); feed(e, 0, 3000, options); return e; }
 test('no fabricated zero or ready state before sensor data', () => {
   const e = new Engine(); assert.equal(e.status('camber', 0).value, null);

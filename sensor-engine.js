@@ -1,4 +1,4 @@
-/* TavAlign 2.1 — display filtering is deliberately separate from capture data. */
+/* TavAlign 2.2 — display filtering is deliberately separate from capture data. */
 (function (root, factory) {
   const api = factory();
   if (typeof module === 'object' && module.exports) module.exports = api;
@@ -19,10 +19,19 @@
   // W3C Rz(alpha) Rx(beta) Ry(gamma): world-up dot screen-normal = cos(beta) cos(gamma).
   // The vector projection stays continuous through upright (beta = 90 degrees).
   // Screen outward: top toward the viewer is positive; top into the car negative.
-  function camberFromOrientation(beta, gamma) {
+  function camberFromOrientation(beta, gamma, position = 'flat') {
     if (!Number.isFinite(beta) || !Number.isFinite(gamma)) return null;
     const radians = Math.PI / 180;
     const upDotNormal = Math.cos(beta * radians) * Math.cos(gamma * radians);
+    if (position === 'flat') {
+      // Screen-up fixture: signed pitch in the phone's top/bottom plane.
+      // asin(screen-normal) loses the sign around horizontal; atan2 preserves it.
+      // Reject a substantially different mounting pose instead of silently
+      // subtracting a 90-degree offset from the other mounting configuration.
+      if (upDotNormal < .5) return null;
+      return Math.atan2(Math.sin(beta * radians), upDotNormal) / radians;
+    }
+    if (position !== 'vertical') return null;
     return -Math.asin(Math.max(-1, Math.min(1, upDotNormal))) / radians;
   }
 

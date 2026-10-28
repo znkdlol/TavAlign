@@ -3,7 +3,6 @@
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
   const { Engine, Display, wrap, correctedToe, camberFromOrientation, CONFIG } = TavSensors;
-  const CAMBER_MODEL = 'screen-plane-v1';
   const engine = new Engine();
   const displays = { camber: new Display(), yaw: new Display() };
   const WHEELS = ['FL', 'FR', 'RL', 'RR'];
@@ -23,8 +22,11 @@
   alignment.quality ||= { camber: {}, toe: {} };
   alignment.quality.camber ||= {};
   alignment.quality.toe ||= {};
+  let mountPosition = read('tavalign-mount-position', 'flat');
+  if (!['flat', 'vertical'].includes(mountPosition)) mountPosition = 'flat';
+  const camberModel = () => mountPosition === 'flat' ? 'screen-up-pitch-v1' : 'screen-plane-v1';
   const savedCalibration = read('tavalign-camber-calibration', null);
-  let zeroRequired = savedCalibration?.model !== CAMBER_MODEL || !Number.isFinite(savedCalibration?.zero);
+  let zeroRequired = savedCalibration?.model !== camberModel() || !Number.isFinite(savedCalibration?.zero);
   // The old gamma zero is a different physical axis. Keep it in storage for
   // history, but never apply it to the corrected measurement.
   let camberZero = zeroRequired ? 0 : savedCalibration.zero;
@@ -32,6 +34,8 @@
   let invertToe = read('tavalign-invert-toe', false) === true;
   $('#invertCamber').checked = invertCamber;
   $('#invertToe').checked = invertToe;
+  $('#mountPosition').value = mountPosition;
+  let wrongMountPose = false;
 
   function fmt(value) {
     if (!Number.isFinite(value)) return '—';
@@ -57,7 +61,9 @@
     if (toeStep > 0 && toeStep < 3 && ((!Number.isFinite(e.alpha)) || (last && now - last.t > CONFIG.staleMs))) {
       cancelCapture(); resetToeFlow(); message('Yaw stream interrupted. Start with a fresh body reference.');
     }
-    engine.orientation(now, camberFromOrientation(e.beta, e.gamma), e.alpha);
+    const camberAngle = camberFromOrientation(e.beta, e.gamma, mountPosition);
+    wrongMountPose = Number.isFinite(e.beta) && Number.isFinite(e.gamma) && camberAngle === null;
+    engine.orientation(now, camberAngle, e.alpha);
   }
   function onMotion(e) {
     if (document.hidden) return;
@@ -107,7 +113,7 @@
     pending = { purpose, wheel: kind === 'camber' ? selectedCamberWheel : selectedToeWheel, step: toeStep };
     message('Averaging for 1.5 seconds. Keep the fixture still.'); renderLive();
   }
-  function context(type) { return type === 'camber' ? `${CAMBER_MODEL}:${camberZero}:${invertCamber}` : String(invertToe); }
+  function context(type) { return type === 'camber' ? `${camberModel()}:${camberZero}:${invertCamber}` : String(invertToe); }
   function record(type, wheel, value, capture, extra = {}) {
     const old = alignment.quality[type][wheel];
     const history = old?.context === context(type) && Array.isArray(old.history) ? old.history : [];
@@ -119,8 +125,8 @@
   }
   function qualityText(type, wheel) {
     const q = alignment.quality[type][wheel];
-    if (type === 'camber' && Number.isFinite(alignment.camber[wheel]) && !q?.context?.startsWith(`${CAMBER_MODEL}:`))
-      return 'Earlier camber axis · measure again';
+    if (type === 'camber' && Number.isFinite(alignment.camber[wheel]) && !q?.context?.startsWith(`${camberModel()}:`))
+      return 'Different mounting reference · measure again';
     if (!q) return Number.isFinite(alignment[type][wheel]) ? 'Earlier reading · repeat check needed' : 'No capture yet';
     if (q.context !== context(type)) return 'Settings changed · measure again';
     const values = (q.history || []).map(h => h.value);
@@ -136,7 +142,7 @@
     if (!result.ok) { message(result.reason); return; }
     if (p.purpose === 'zero') {
       camberZero = result.value; zeroRequired = false;
-      write('tavalign-camber-calibration', { model: CAMBER_MODEL, zero: camberZero });
+      write('tavalign-camber-calibration', { model: camberModel(), zero: camberZero });
       displays.camber.reset(); renderResults();
       message(`Fixture zero averaged and saved. Noise ${result.sd.toFixed(3)}° SD. Move to the wheel.`);
     } else if (p.purpose === 'camber') {
@@ -178,6 +184,7 @@
       cancelCapture(); resetToeFlow(); message('Toe sequence expired after 2 minutes. Start with a fresh reference.');
     }
     const active = engine.capture;
+    if (wrongMountPose) c.reason = 'Face screen up';
     text('#camberReading', fmt(displays.camber.update(c.value === null ? null : camber(c.value))));
     text('#yawReading', fmt(displays.yaw.update(y.value)));
     for (const [kind, state, prefix] of [['camber', c, 'camber'], ['yaw', y, 'toe']]) {
@@ -202,7 +209,11 @@
       text('#sensorState', live ? 'Receiving sensors · steady display' : 'Waiting for sensors · keep the app open');
       $('#sensorState').className = `status ${live ? 'good' : 'bad'}`;
     }
-    text('#zeroNote', zeroRequired ? 'v2.1 axis correction: average a fresh fixture zero before saving camber.' : `Saved fixture zero: ${fmt(camberZero)} · v2.1`);
+    text('#camberCaption', mountPosition === 'flat' ? 'SCREEN UP · SIGNED FORWARD / BACK TILT' : 'SCREEN OUTWARD · TILT FROM VERTICAL');
+    text('#mountInstructions', mountPosition === 'flat' ?
+      'Keep the phone seated in the mount, screen facing the sky. Set the assembled fixture in its known-level reference position and average the zero. Keep the same seating and direction when measuring. Do not zero against the wheel being measured.' :
+      'Keep the phone seated with its screen outward, parallel to the wheel face. Set the fixture contact points against a known vertical reference and average the zero.');
+    text('#zeroNote', zeroRequired ? 'v2.2: average a fresh fixture zero for this mounting position before saving camber.' : `Saved fixture zero: ${fmt(camberZero)} · v2.2`);
   }
   function renderToeStep() {
     const titles = ['Body reference', 'Wheel', 'Body reference again', 'Measurement complete'];
@@ -249,6 +260,16 @@
   }));
   $('#saveCamberBtn').addEventListener('click', () => startCapture('camber', 'camber'));
   $('#zeroCamberBtn').addEventListener('click', () => startCapture('camber', 'zero'));
+  $('#mountPosition').addEventListener('change', e => {
+    mountPosition = e.target.value;
+    write('tavalign-mount-position', mountPosition);
+    const calibration = read('tavalign-camber-calibration', null);
+    zeroRequired = calibration?.model !== camberModel() || !Number.isFinite(calibration?.zero);
+    camberZero = zeroRequired ? 0 : calibration.zero;
+    wrongMountPose = false;
+    resetStream('Mount position changed. Check the reference instructions and fixture zero.');
+    renderResults(); renderLive();
+  });
   $('#clearCamberBtn').addEventListener('click', () => {
     cancelCapture(); camberZero = 0; zeroRequired = true; write('tavalign-camber-calibration', null);
     displays.camber.reset(); renderResults(); renderLive(); message('Fixture zero cleared. Average a fresh zero before saving camber.');

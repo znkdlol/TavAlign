@@ -1,4 +1,8 @@
-# TavAlign 2.1 verification
+# TavAlign 2.2 verification
+
+Version 2.2 adds five screen-up tests for horizontal zero, signed pitch including +/-3.2°, sideways-roll rejection, incompatible mounting rejection, and projection of a known gravity vector. All **33** sensor tests pass. Browser integration covers the screen-up default, ignoring a stored v2.1 calibration in that mode, averaged zero, opposite pitch signs, switching mounting position, capture blocking in an upright pose, recovery, and the existing capture/toe/offline flows. Updating an installed v2.1 app through the update banner also passes.
+
+These checks verify sensor math and application behavior using simulated inputs. They do not validate the printed fixture's physical transfer of wheel camber to phone pitch. Confirm that relationship, the zero reference, sign, and repeatability on the actual assembled fixture before interpreting its pitch as wheel camber.
 
 Version 2.1 adds six physical-axis regression tests: upright zero, opposite forward/back signs, continuity through upright, zero for pure sideways lean, invariance under rotation within the screen plane, and invalid component handling. All **28** deterministic tests pass. Browser coverage includes the new zero requirement, preserving but ignoring the legacy axis zero, and forward/back sign changes. Updating an installed v2.0 app to v2.1 through its update banner and reloading offline also passed. These tests validate the math and wiring using simulated input; actual phone accuracy still requires the physical checks below.
 

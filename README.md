@@ -1,8 +1,12 @@
 # TavAlign Web
 
-## Version 2.1: corrected camber axis, steady readings and averaged captures
+## Version 2.2: screen-up mounting and explicit reference selection
 
-Camber now measures forward/back inclination of the screen/fixture plane from vertical. Keep the phone's screen facing outward, parallel to the wheel face. The earlier direct gamma reading measured the wrong component for this mounting. Version 2.1 requires a fresh averaged fixture zero and marks earlier camber results for remeasurement. Toe calculations are unchanged.
+Choose the phone's position **during the wheel measurement** in Camber. The default is **Facing up toward the sky**, using signed forward/back pitch around horizontal. Keep the phone seated in the printed mount when calibrating and measuring. Use the assembled fixture's known-level reference position to average the zero. An arbitrary tabletop is not automatically level, and zeroing on the wheel being measured subtracts its actual angle.
+
+**Facing outward from the wheel** retains the v2.1 screen-plane inclination calculation and uses a known vertical fixture reference. These are different mounting arrangements, with separate measurement-model identifiers. Switching position resets the sensor window and blocks saving until a matching calibration is available. A screen-up measurement rejects an upright or face-down phone instead of quietly applying an incompatible reference. Existing readings remain stored and are labelled for remeasurement when their mounting reference differs.
+
+This measures the phone/fixture inclination. It represents wheel camber only if the fixture transfers the wheel's camber rotation to the phone's forward/back measurement plane and its reference position represents zero wheel camber. That mechanical relationship cannot be established from a screenshot or the provided sliced print package alone. Confirm it with a known reference. Toe calculations are unchanged.
 
 See **UPLOAD.md** for replacing an existing GitHub Pages installation, including the first update from the old offline cache. No build tools, server, account changes, or new hosting are needed.
 
@@ -22,7 +26,9 @@ Entry motion limits are 0.65°/second rotation magnitude and 0.12 m/s² linear a
 
 The display filter uses a 180 ms time constant while moving and 450 ms once ready. Display rounding uses 0.01° steps plus a 0.008° hysteresis margin. This provides calm feedback while retaining full-precision averages in storage.
 
-Camber is calculated as `-asin(cos(beta) * cos(gamma))`, using radians internally. This derives the screen normal's vertical component from the W3C rotation matrix, giving continuous camber through upright and avoiding false camber from pure in-plane sideways lean. With the screen outward and default polarity, top outward is positive and top inward is negative. Verify your fixture's sign; the invert setting is retained.
+Screen-up mode uses `atan2(sin(beta), cos(beta) * cos(gamma))`, with radians internally. The W3C rotation matrix supplies the top-axis and screen-normal vertical components. This keeps opposite signs on both sides of horizontal, unlike screen-plane inclination alone. Pure sideways roll around a level forward/back axis gives zero pitch. Hold the same fixture direction during calibration and measurement. The screen normal must remain within 60° of upward; otherwise capture is blocked.
+
+Screen-outward mode uses `-asin(cos(beta) * cos(gamma))` as in v2.1. Its zero reference is vertical. Verify sign for the actual fixture: a known inward lean of the wheel reference must read negative. Use Invert camber sign if the fixture reverses the direction; never change the zero simply to force a known -3° result.
 
 Smoothing cannot calibrate the phone, correct fixture/runout errors, or remove nonlinear yaw drift. The alpha-based toe method is unchanged and still has limitations near orientation singularities. A stable value is not evidence of absolute accuracy, and a low endpoint drift does not prove the yaw was accurate at the wheel. Do not infer 0.01° accuracy from two displayed decimals. Validate on your actual phone and fixture against known angles and a separate reference method.
 
@@ -59,7 +65,7 @@ After its first successful load, the service worker caches the app for offline u
 
 ### Camber
 1. Enable sensors.
-2. Put the phone/fixture on a known vertical reference.
+2. Select the screen direction used during measurement. Place the assembled fixture on a known-level reference for screen-up mode, or a known vertical reference for screen-outward mode.
 3. Tap Average fixture zero and hold still until it completes.
 4. Put the fixture on the wheel.
 5. Wait for Ready.
