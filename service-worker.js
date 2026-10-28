@@ -1,13 +1,14 @@
 
 // Scope-specific caches keep other GitHub Pages apps on this origin untouched.
 const PREFIX = `tavalign-${encodeURIComponent(new URL(self.registration.scope).pathname)}-`;
-const CACHE = `${PREFIX}v2.3.0`;
+const CACHE = `${PREFIX}v2.4.0`;
 const ASSETS = [
   "./",
   "./index.html",
   "./styles.css",
   "./app.js",
   "./sensor-engine.js",
+  "./capture-queue.js",
   "./manifest.webmanifest",
   "./icon-180.png",
   "./icon-192.png",

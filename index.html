@@ -16,7 +16,7 @@
   <div id="app">
     <header class="topbar">
       <div>
-        <div class="eyebrow">TAV GARAGE · v2.3</div>
+        <div class="eyebrow">TAV GARAGE · v2.4</div>
         <h1>TavAlign</h1>
       </div>
       <button id="sensorBtn" class="pill primary">Enable sensors</button>
@@ -66,6 +66,25 @@
           <h3>Fixture orientation</h3>
           <p>Choose the phone's position during measurement in Camber: screen facing up or screen facing outward. Keep the phone seated the same way, and use the same fixture contact points each time.</p>
         </div>
+        <button id="homeCalibrationBtn" class="pill wide setup-link">Set up reference calibration</button>
+      </section>
+
+      <section id="calibrationView" class="view">
+        <div class="view-head"><button class="back" data-go="homeView" aria-label="Back">‹</button><h2>Reference setup</h2><span></span></div>
+        <div class="card">
+          <div id="calibrationStep" class="step-num">REFERENCE 1 OF 2</div>
+          <h3 id="calibrationTitle">Face-up reference</h3>
+          <p id="calibrationInstructions"></p>
+          <div id="calibrationState" class="stability" role="status">Place screen face up near level</div>
+          <progress id="calibrationProgress" max="100" value="0" aria-label="Reference capture progress"></progress>
+          <button id="calibrationCaptureBtn" class="action primary wide">Capture face-up reference</button>
+          <p class="capture-hint">Tap, release, then let it settle. Movement restarts the averaging window automatically.</p>
+        </div>
+        <div data-feedback></div>
+        <button id="calibrationSkipBtn" class="pill wide setup-link">Use existing zero / set up later</button>
+        <button id="calibrationAgainBtn" class="text-btn wide">Start setup again</button>
+        <p id="referenceSavedNote" class="signal-note"></p>
+        <div class="card muted-card"><h3>What this corrects</h3><p>These are separate reference offsets for the phone and its seating in this fixture. They do not level the mount on the wheel or correct uneven rim contact. Support the fixture without squeezing or rocking it.</p></div>
       </section>
 
       <section id="camberView" class="view">
@@ -83,6 +102,7 @@
         </div>
 
         <div class="reading-wrap">
+          <p class="wheel-legend">Saved readings above · * Earlier reference: remeasure</p>
           <div id="camberCaption" class="reading-caption">SCREEN UP · LEFT / RIGHT EDGE TILT</div>
           <div id="camberReading" class="big-reading">—</div>
           <div id="camberStable" class="stability" role="status">Waiting for sensors</div>
@@ -90,8 +110,9 @@
           <div id="camberQuality" class="signal-note">Hold the fixture still until Ready</div>
         </div>
 
-        <button id="saveCamberBtn" class="action primary wide" disabled>Capture FL camber</button>
-        <p class="capture-hint">Averages 1.5 seconds. Movement cancels the capture.</p>
+        <button id="captureNextBtn" class="action primary wide" disabled>Capture FL &amp; next corner</button>
+        <button id="saveCamberBtn" class="text-btn wide" disabled>Capture FL only</button>
+        <p class="capture-hint">Tap once and release. Averages a steady 2-second window, retrying movement for up to 20 seconds.</p>
         <div data-feedback></div>
 
         <div class="card">
@@ -114,6 +135,7 @@
             <button id="zeroCamberBtn" class="pill" disabled>Average fixture zero</button>
             <button id="clearCamberBtn" class="pill">Clear zero</button>
           </div>
+          <button id="calibrationStartBtn" class="pill wide setup-link">Two-position reference setup</button>
           <p id="zeroNote" class="signal-note"></p>
           <label class="toggle-row">
             <span>Invert camber sign</span>
@@ -148,6 +170,7 @@
         </div>
 
         <div class="step card">
+          <p class="wheel-legend">Saved readings above · * Earlier reference: remeasure</p>
           <div id="toeStepLabel" class="step-num">STEP 1 OF 3</div>
           <h3 id="toeStepTitle">Body reference</h3>
           <p id="toeStepText">Place the fixture against a straight reference parallel to vehicle centerline on the same side as the wheel.</p>
@@ -162,7 +185,7 @@
         </div>
 
         <button id="toeCaptureBtn" class="action primary wide" disabled>Capture reference</button>
-        <p class="capture-hint">Each step averages 1.5 seconds. Finish within 2 minutes.</p>
+        <p class="capture-hint">Tap and release. Each step waits for a steady 2-second window. Finish within 2 minutes.</p>
         <div data-feedback></div>
         <button id="restartToeBtn" class="text-btn wide">Restart this wheel</button>
 
@@ -179,6 +202,7 @@
           </div>
           <p id="driftNote"></p>
         </div>
+        <button id="toeNextBtn" class="pill wide hidden">Next corner</button>
 
         <div class="card">
           <h3>Measurement logic</h3>
@@ -238,11 +262,12 @@
     <footer>
       <p>Steadier readings, not a calibration guarantee. Repeatability describes consistency, not absolute accuracy. Validate camber and toe against a known gauge or strings.</p>
       <p id="storageNote" role="status"></p>
-      <p id="offlineNote">TavAlign 2.3 · selectable camber axis · works offline after loading</p>
+      <p id="offlineNote">TavAlign 2.4 · 2 updates/second · guided reference setup</p>
     </footer>
   </div>
 
   <script src="sensor-engine.js"></script>
+  <script src="capture-queue.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

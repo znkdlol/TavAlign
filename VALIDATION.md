@@ -1,36 +1,23 @@
-# TavAlign 2.3 verification
+# TavAlign 2.4 validation
 
-Version 2.3 adds four tests for the clarified left/right camber axis: default axis isolation, left-edge-down sign from a rotation matrix, combined pitch/roll, and rejection of unknown axes. All **37** sensor tests pass. Browser tests cover separate diagnostic readings, default left/right mode, calibration invalidation on an axis change, restoration of matching calibration, and continued operation with a landscape screen angle of 90°. The existing camber/zero/toe/cancellation/offline checks and upgrade from v2.2 also pass.
+## Completed checks
 
-This is simulated verification of the described movement, not proof of the actual fixture's wheel-camber accuracy. The diagnostic panel exposes both tilt directions to resolve any remaining mismatch on the user's phone. No additional physical-axis assumptions should be made from an expected -3.x° value.
+- 49 deterministic tests passed: the original 37 sensor/axis tests plus 12 capture-queue and companion-axis tests.
+- New capture tests cover tap disturbance, release delay, arming while moving, fresh-window retries, deadlines, cancellation, configurable duration, simultaneous reference averages, companion-only motion, stale-stream recovery and completion timing.
+- Browser integration passed with simulated sensors in desktop Edge at 390 × 844: first-time guided setup, face-up and upright reference offsets, atomic profile commit, cancellation preserving the previous profile, model-specific zero selection, tap disturbance recovery, two numeric updates per second, saved wheel tiles, cancel/timeout without advancement, capture-and-next through FL/FR/RL/RR, complete toe sequence, retained profile after reload, stale-value blanking, offline subpath loading and no JavaScript runtime errors.
+- A separate service-worker test passed for v2.3 → v2.4 using Update app, loading the new capture-queue.js, subsequent update activation, scoped cache cleanup without removing another app's cache, and offline reload.
+- JavaScript syntax and Git whitespace checks passed. Phone-sized Reference setup, Camber and Toe screens were visually inspected. Existing manifest/icons were preserved.
 
-Version 2.2 adds five screen-up tests for horizontal zero, signed pitch including +/-3.2°, sideways-roll rejection, incompatible mounting rejection, and projection of a known gravity vector. All **33** sensor tests pass. Browser integration covers the screen-up default, ignoring a stored v2.1 calibration in that mode, averaged zero, opposite pitch signs, switching mounting position, capture blocking in an upright pose, recovery, and the existing capture/toe/offline flows. Updating an installed v2.1 app through the update banner also passes.
+## Actual-device checks still required
 
-These checks verify sensor math and application behavior using simulated inputs. They do not validate the printed fixture's physical transfer of wheel camber to phone pitch. Confirm that relationship, the zero reference, sign, and repeatability on the actual assembled fixture before interpreting its pitch as wheel camber.
+Tests simulate sensor input. They do not establish absolute accuracy on the user's iPhone or printed fixture. Validate the profile with independently checked level and vertical references, then remove/reseat the fixture at least five times on the same wheel. Compare with a known camber gauge and a separate toe reference. Check both signs and wheel sides.
 
-Version 2.1 adds six physical-axis regression tests: upright zero, opposite forward/back signs, continuity through upright, zero for pure sideways lean, invariance under rotation within the screen plane, and invalid component handling. All **28** deterministic tests pass. Browser coverage includes the new zero requirement, preserving but ignoring the legacy axis zero, and forward/back sign changes. Updating an installed v2.0 app to v2.1 through its update banner and reloading offline also passed. These tests validate the math and wiring using simulated input; actual phone accuracy still requires the physical checks below.
+The raw stability thresholds have not been relaxed. A stationary fixture must still supply a sufficiently quiet window; automatic retries address tap timing, not continuous movement or an unstable mount. If the actual device never settles, collect stationary diagnostic data before changing thresholds.
 
-Source baseline: public `znkdlol/TavAlign` main commit `8e90cb897e9800a255c0b549d7ab0e516b4134f4`.
+Two-position setup records separate reference offsets. It does not perform a full sensor bias/scale/cross-axis calibration or correct uneven contact with the wheel. The same phone, case and fixture seating must be used. A level bench is suitable only when the assembly's supported position represents the intended zero reference; a wall is suitable only when checked plumb. No force-fitting to a known -3.x° reading is implemented.
 
-## Automated checks
+The printed mount was not modified.
 
-- 22 deterministic sensor tests: startup without data; dwell; noise attenuation; prospective capture and averaged zero; impulse rejection; movement between display frames; stale angles and rotation; recovery after a gap; missing sensor fields; limited acceleration mode; circular yaw; slow drift; readiness and display hysteresis; time-weighted statistics; 10/30/60/100 Hz input; lifecycle reset; toe midpoint drift correction and polarity; step response.
-- Browser integration with simulated sensor events in Chromium/Edge at a 390 × 844 mobile viewport: legacy local storage and zero; initial capture blocking; live readiness; averaged camber; repeated-capture spread; movement cancellation; averaged zero; all three toe steps across yaw wraparound; rejection of excessive reference drift without overwriting a prior reading; stale display clearing; mobile overflow; offline reload from a `/TavAlign/` subpath; no JavaScript runtime errors.
-- Phone-sized Camber, Body Toe and Current Alignment pages visually inspected.
-- Additional browser checks: permission denial leaves a retryable button; interrupted sensors reset an unfinished toe sequence; version 1 upgrades after all app tabs close while retaining fixture zero; the next update displays an activation banner; cache cleanup preserves other apps on the same origin; the upgraded app reloads offline.
-- JavaScript syntax checked. Existing PWA manifest and icons retained unchanged.
+## API reference
 
-## Physical validation still needed
-
-No real iPhone sensor/permission session or calibrated alignment measurement was available in this environment. Browser tests use simulated signals and do not establish accuracy on your phone.
-
-On your iPhone, check permissions, portrait orientation, background/foreground recovery, standalone Home Screen operation and offline reopen. Measure a fixed reference at least five times, removing and reseating the fixture. Compare camber against a known gauge and toe against strings/plates or a validated alignment reading. Test both sides and sign settings. Verify an intentional move cancels capture. Repeat after the phone warms up and after repositioning near the vehicle. Record bias separately from repeat spread.
-
-The default thresholds are engineering starting points. If actual stationary noise is higher, investigate fixture stability and phone sensor behavior before relaxing them. A repeatable result can still have systematic error.
-
-## Browser API references
-
-- Device orientation data and permission behavior: https://developer.mozilla.org/en-US/docs/Web/API/DeviceOrientationEvent
-- Motion data fields: https://developer.mozilla.org/en-US/docs/Web/API/DeviceMotionEvent
-- Service worker update checks: https://developer.mozilla.org/en-US/docs/Web/API/ServiceWorkerRegistration/update
-- Orientation axes and rotation matrix: https://www.w3.org/TR/orientation-event/#worked-example-2
+Browser orientation events contain processed orientation estimates rather than raw sensor samples: https://www.w3.org/TR/orientation-event/#introduction

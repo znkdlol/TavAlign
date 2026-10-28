@@ -1,4 +1,4 @@
-/* TavAlign 2.3 — display filtering is deliberately separate from capture data. */
+/* TavAlign 2.4 — display filtering is deliberately separate from capture data. */
 (function (root, factory) {
   const api = factory();
   if (typeof module === 'object' && module.exports) module.exports = api;
@@ -95,15 +95,26 @@
         this.cancel('Phone moved. Settle and try again.');
         return;
       }
+      const companion = capture.companionKind ? this.channels[capture.companionKind] : null;
+      if (companion && (!companion.last || companion.last.t !== t ||
+        Math.abs(companion.last.v - capture.companionBaseline) > CONFIG[capture.companionKind].excursion)) {
+        this.cancel('Reference moved on the other axis. Settle and try again.');
+        return;
+      }
       capture.points.push({ ...c.last });
+      if (companion) capture.companionPoints.push({ ...companion.last });
       const s = stats(capture.points);
-      if (s.duration < CONFIG.captureMs) return;
-      if (s.count < CONFIG.minCaptureSamples || !within(s, CONFIG[capture.kind])) {
+      if (s.duration < capture.durationMs) return;
+      const companionStats = companion ? stats(capture.companionPoints) : null;
+      if (s.count < CONFIG.minCaptureSamples || !within(s, CONFIG[capture.kind]) ||
+        (companionStats && (companionStats.count < CONFIG.minCaptureSamples || !within(companionStats, CONFIG[capture.companionKind])))) {
         this.cancel('Capture was not steady enough. Try again.');
         return;
       }
       this.outcome = { ok: true, kind: capture.kind, ...s, value: wrap(s.mean),
-        fullMotion: capture.fullMotion && this.motion.acceleration !== null };
+        completedAt: t,
+        fullMotion: capture.fullMotion && this.motion.acceleration !== null,
+        ...(companionStats ? { companion: { ...companionStats, value: wrap(companionStats.mean) } } : {}) };
       this.capture = null;
     }
     add(kind, t, value) {
@@ -150,7 +161,9 @@
       }
       if (this.capture) {
         if (this.motion.acceleration === null) this.capture.fullMotion = false;
-        if (!this.channels[this.capture.kind].ready) this.cancel('Movement or interrupted sensors. Settle and try again.');
+        if (!this.channels[this.capture.kind].ready ||
+          (this.capture.companionKind && !this.channels[this.capture.companionKind].ready))
+          this.cancel('Movement or interrupted sensors. Settle and try again.');
       }
     }
     status(kind, t) {
@@ -162,11 +175,16 @@
         fullMotion: this.motion.acceleration !== null,
         progress: c.ready ? 1 : c.since === null ? 0 : Math.min(1, (t - c.since) / CONFIG.dwellMs) };
     }
-    start(kind, t) {
+    start(kind, t, options = {}) {
       this.tick(t);
-      if (this.capture || !this.channels[kind].ready) return false;
+      const durationMs = options.durationMs ?? CONFIG.captureMs;
+      const companionKind = options.companionKind || null;
+      if (!Number.isFinite(durationMs) || durationMs <= 0 || !this.channels[kind] ||
+        this.capture || !this.channels[kind].ready ||
+        (companionKind && (!this.channels[companionKind] || !this.channels[companionKind].ready))) return false;
       this.outcome = null;
-      this.capture = { kind, start: t, points: [],
+      this.capture = { kind, start: t, durationMs, points: [], companionKind,
+        companionPoints: [], companionBaseline: companionKind ? this.channels[companionKind].summary.mean : null,
         baseline: this.channels[kind].summary.mean,
         fullMotion: this.motion.acceleration !== null };
       return true;

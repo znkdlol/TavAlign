@@ -18,6 +18,16 @@ body { min-height: 100vh; min-height: 100dvh; }
 button, input { font: inherit; }
 select { font: inherit; color: var(--text); background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px; width: 100%; margin: 8px 0 14px; }
 .mount-label { font-size: 13px; color: var(--muted); }
+.setup-link { margin-top: 14px; }
+.wheel-picker button { min-width: 0; position: relative; }
+.wheel-marker { position: absolute; top: 3px; right: 7px; color: var(--warn); font-size: 15px; }
+.wheel-legend { font-size: 11px; color: var(--muted); margin: 7px 4px 0; }
+.wheel-picker .wheel-name, .wheel-picker .wheel-value { display: block; }
+.wheel-picker .wheel-value { font-size: 12px; font-weight: 600; margin-top: 6px; font-variant-numeric: tabular-nums; min-height: 16px; }
+.wheel-picker .needs-check .wheel-value { color: var(--warn); }
+#calibrationView h3 { margin-top: 12px; }
+#calibrationProgress { margin: 18px 0; }
+#calibrationState { width: auto; text-align: center; line-height: 1.5; }
 .sensor-check summary { cursor: pointer; font-weight: 700; }
 .sensor-check p { font-size: 13px; margin-top: 12px; }
 .sensor-check dl { margin: 14px 0; font-size: 13px; }
