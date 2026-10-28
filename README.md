@@ -1,6 +1,8 @@
-# TavAlign 2.4
+# TavAlign 2.5
 
 A static GitHub Pages/PWA update for calmer live readings, easier capture, and guided reference setup. Upload instructions are in UPLOAD.md. No build tools or new hosting are needed.
+
+Version 2.5 moves the main capture controls into a fixed bottom bar for easier thumb reach. It stays visible while scrolling, leaves room for the phone's home indicator, and keeps page content scrollable above it. Camber, toe and reference setup use the same bottom placement, with progress and cancellation nearby. After an accepted toe result, Next corner becomes the bottom primary action. Sensor axes, reference calibration and capture timing are unchanged from 2.4.
 
 ## Measuring
 

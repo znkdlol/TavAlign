@@ -347,6 +347,34 @@
     text('#diagnosticPose', !freshDiagnostic ? 'Waiting for current sensor data.' : wrongMountPose ?
       'The screen is not facing upward. If it faces you while against the wall or wheel, select Facing outward from the wheel.' :
       'These checks show unzeroed tilt. They ignore the fixture zero and invert setting.');
+    renderDock();
+  }
+  function renderDock() {
+    const showCamber = view === 'camberView';
+    const showToe = view === 'toeView';
+    const showCalibration = view === 'calibrationView' && referenceStep < 2;
+    const visible = showCamber || showToe || showCalibration;
+    $('#captureDock').classList.toggle('hidden', !visible);
+    $('#dockCamber').classList.toggle('hidden', !showCamber);
+    $('#dockToe').classList.toggle('hidden', !showToe);
+    $('#dockCalibration').classList.toggle('hidden', !showCalibration);
+    document.body.classList.toggle('has-capture-dock', visible);
+    const queue = showCalibration ? referenceQueue : captureQueue;
+    text('#dockStatus', queue.job ? (queue.job.stage === 'averaging' ? 'Averaging · keep supported' : 'Release your thumb · waiting to settle') :
+      showCamber ? `${selectedCamberWheel} camber · tap and release` :
+      showToe ? `${selectedToeWheel} toe · ${toeStep < 3 ? `step ${toeStep + 1} of 3` : 'capture complete'}` : 'Reference setup · tap and release');
+    // On an accepted toe result, Next corner becomes the bottom primary action.
+    const nextToe = toeStep === 3 && toeAccepted;
+    $('#toeCaptureBtn').classList.toggle('primary', !nextToe);
+    $('#toeCaptureBtn').classList.toggle('text-btn', nextToe);
+    $('#toeNextBtn').classList.toggle('primary', nextToe);
+    updateDockSpace();
+  }
+  function updateDockSpace() {
+    const height = $('#captureDock').classList.contains('hidden') ? 0 : $('#captureDock').getBoundingClientRect().height;
+    const value = `${Math.ceil(height)}px`;
+    if (document.documentElement.style.getPropertyValue('--capture-dock-height') !== value)
+      document.documentElement.style.setProperty('--capture-dock-height', value);
   }
   function renderToeStep() {
     $('#toeNextBtn').classList.toggle('hidden', toeStep !== 3 || !toeAccepted);
@@ -492,6 +520,15 @@
   window.addEventListener('orientationchange', screenChange);
   screen.orientation?.addEventListener('change', screenChange);
   $('#homeView [data-feedback]').appendChild($('.capture-feedback'));
+  // Move the existing controls, preserving their listeners and state. The dock
+  // sits outside animated views so its fixed position always follows the viewport.
+  $('#dockCamber').append($('#saveCamberBtn'), $('#captureNextBtn'));
+  $('#dockToe').append($('#toeCaptureBtn'), $('#toeNextBtn'));
+  $('#dockCalibration').append($('#calibrationCaptureBtn'));
+  $('#dockCancel').append($('#cancelCaptureBtn'));
+  $('#dockProgress').append($('#captureProgress'));
+  if ('ResizeObserver' in window) new ResizeObserver(updateDockSpace).observe($('#captureDock'));
+  window.addEventListener('resize', updateDockSpace);
   $$('[data-picker] button').forEach(b => {
     const name = document.createElement('span'), value = document.createElement('span'), marker = document.createElement('span');
     name.className = 'wheel-name'; name.textContent = b.dataset.wheel;

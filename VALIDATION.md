@@ -1,11 +1,13 @@
-# TavAlign 2.4 validation
+# TavAlign 2.5 validation
 
 ## Completed checks
+
+- Bottom capture placement checked in Edge at 390 × 844, 320 × 568 and 844 × 390. Controls stay at the viewport bottom while scrolling, remain unobstructed, and leave enough scroll space to reach the footer. Camber, toe and reference setup route to the existing controls with no duplicates. The bar is hidden on Home and Current Alignment. Portrait and landscape screens were visually inspected.
 
 - 49 deterministic tests passed: the original 37 sensor/axis tests plus 12 capture-queue and companion-axis tests.
 - New capture tests cover tap disturbance, release delay, arming while moving, fresh-window retries, deadlines, cancellation, configurable duration, simultaneous reference averages, companion-only motion, stale-stream recovery and completion timing.
 - Browser integration passed with simulated sensors in desktop Edge at 390 × 844: first-time guided setup, face-up and upright reference offsets, atomic profile commit, cancellation preserving the previous profile, model-specific zero selection, tap disturbance recovery, two numeric updates per second, saved wheel tiles, cancel/timeout without advancement, capture-and-next through FL/FR/RL/RR, complete toe sequence, retained profile after reload, stale-value blanking, offline subpath loading and no JavaScript runtime errors.
-- A separate service-worker test passed for v2.3 → v2.4 using Update app, loading the new capture-queue.js, subsequent update activation, scoped cache cleanup without removing another app's cache, and offline reload.
+- A separate service-worker test passed for v2.4 → v2.5 using Update app, retaining saved settings, loading capture-queue.js, subsequent update activation, scoped cache cleanup without removing another app's cache, and offline reload.
 - JavaScript syntax and Git whitespace checks passed. Phone-sized Reference setup, Camber and Toe screens were visually inspected. Existing manifest/icons were preserved.
 
 ## Actual-device checks still required

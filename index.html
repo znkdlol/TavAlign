@@ -16,7 +16,7 @@
   <div id="app">
     <header class="topbar">
       <div>
-        <div class="eyebrow">TAV GARAGE · v2.4</div>
+        <div class="eyebrow">TAV GARAGE · v2.5</div>
         <h1>TavAlign</h1>
       </div>
       <button id="sensorBtn" class="pill primary">Enable sensors</button>
@@ -262,9 +262,20 @@
     <footer>
       <p>Steadier readings, not a calibration guarantee. Repeatability describes consistency, not absolute accuracy. Validate camber and toe against a known gauge or strings.</p>
       <p id="storageNote" role="status"></p>
-      <p id="offlineNote">TavAlign 2.4 · 2 updates/second · guided reference setup</p>
+      <p id="offlineNote">TavAlign 2.5 · thumb-reach capture · 2 updates/second</p>
     </footer>
   </div>
+
+  <aside id="captureDock" class="capture-dock hidden" aria-label="Measurement controls">
+    <div class="dock-head">
+      <span id="dockStatus">Tap, release, then let it settle</span>
+      <div id="dockCancel"></div>
+    </div>
+    <div id="dockProgress"></div>
+    <div id="dockCamber" class="dock-controls hidden"></div>
+    <div id="dockToe" class="dock-controls hidden"></div>
+    <div id="dockCalibration" class="dock-controls hidden"></div>
+  </aside>
 
   <script src="sensor-engine.js"></script>
   <script src="capture-queue.js"></script>
