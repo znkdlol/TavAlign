@@ -1,6 +1,6 @@
 # Update your existing TavAlign site
 
-1. Unzip `TavAlign-v2-upload.zip` on your computer.
+1. Unzip `TavAlign-v2.1-upload.zip` on your computer.
 2. Open your existing repository: https://github.com/znkdlol/TavAlign
 3. Choose **Add file → Upload files**. Upload the extracted files at the repository root, replacing matching files. Upload the contents, not the ZIP or an extra enclosing folder. Keep the `tests` folder together if you include it.
 4. Commit the upload to the existing `main` branch. Keep Pages set to **main / (root)**. No other Pages settings need changing.
@@ -8,13 +8,13 @@
 
 Required app files are `index.html`, `styles.css`, `app.js`, the NEW `sensor-engine.js`, `service-worker.js`, `manifest.webmanifest`, and the three existing PNG icons. The package includes all of them. The manifest and icons are unchanged. README, these notes, and tests are optional to host.
 
-## Make sure your iPhone receives version 2
+## Make sure your iPhone receives version 2.1
 
 The original app caches version 1 for offline use. The first visit after upload may still show the old screen while the new version downloads.
 
 Open the site online, allow a few seconds for the download, then close **all TavAlign browser tabs and the TavAlign Home Screen app**. Reopen it online. If it still shows the old version, repeat the close/reopen once after checking that the Pages deployment succeeded. Do not clear website data as a first step: doing so removes stored readings and your zero.
 
-Confirm **TavAlign 2.0** in the footer, **Capture FL camber**, and **Average fixture zero**. Future updates can show an **Update app** banner; use it between measurements. The worker caches a complete version before installation and does not force a reload during capture.
+If updating from version 2.0, tap **Update app** when the banner appears. Confirm **TavAlign 2.1** in the footer and **LIVE CAMBER · FORWARD / BACK TILT** on the camber page. The app will ask you to **Set fixture zero first**. The worker caches a complete version before installation and does not force a reload during capture.
 
 ## First measurement
 
@@ -24,4 +24,4 @@ For toe, perform all three averaged captures without flipping the fixture. Drift
 
 If Ready never appears, hold the fixture firmly, check sensor permission, keep portrait, and keep the app in the foreground. “Waiting for motion” means the browser has not supplied usable rotation data. Missing hardware data cannot be fixed by smoothing.
 
-Your existing saved results and zero are preserved on the same browser/origin. Recheck zero before physical validation. This package has not been deployed to your repository automatically.
+Your existing saved results are retained, but earlier camber readings must be measured again. The old zero belongs to the wrong measurement axis and is deliberately not applied. Average a fresh fixture zero on a known vertical surface. With the screen outward and Invert camber sign off, top inward should read negative and top outward positive. Toe and archived results are retained. This package has not been deployed to your repository automatically.

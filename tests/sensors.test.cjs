@@ -1,7 +1,39 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const { Engine, Display, stats, correctedToe } = require('../sensor-engine.js');
+const { Engine, Display, stats, correctedToe, camberFromOrientation } = require('../sensor-engine.js');
 const near = (a, b, tolerance = .005) => assert.ok(Math.abs(a - b) < tolerance, `${a} != ${b}`);
+test('upright screen is zero camber', () => near(camberFromOrientation(90, 0), 0));
+test('forward/back pitch crosses zero with opposite signs', () => {
+  near(camberFromOrientation(92, 0), 2);
+  near(camberFromOrientation(88, 0), -2);
+});
+test('screen-plane reading is continuous through exactly upright', () => {
+  for (const pitch of [-5, -1, -.01, 0, .01, 1, 5]) near(camberFromOrientation(90 + pitch, 0), pitch);
+});
+test('vertical screen leaning sideways remains zero camber', () => {
+  // With a vertical screen and in-plane lean, gamma approaches +/-90.
+  for (const beta of [60, 75, 89, 91, 105, 120]) {
+    near(camberFromOrientation(beta, -90), 0);
+    near(camberFromOrientation(beta, 89.999999), 0);
+  }
+});
+test('camber is invariant to rotation within the screen plane', () => {
+  const rad = Math.PI / 180;
+  for (const tilt of [-3, 3]) for (const roll of [-20, -10, 0, 10, 20]) {
+    const gx = Math.cos(tilt * rad) * Math.sin(roll * rad);
+    const gy = Math.cos(tilt * rad) * Math.cos(roll * rad);
+    const gz = -Math.sin(tilt * rad);
+    const beta = gz < 0 ? 180 - Math.asin(gy) / rad : Math.asin(gy) / rad;
+    const gamma = Math.atan2(-gx / Math.cos(beta * rad), gz / Math.cos(beta * rad)) / rad;
+    near(camberFromOrientation(beta, gamma), tilt);
+  }
+});
+test('missing orientation components cannot fabricate camber', () => {
+  for (const invalid of [null, undefined, NaN, Infinity]) {
+    assert.equal(camberFromOrientation(invalid, 0), null);
+    assert.equal(camberFromOrientation(90, invalid), null);
+  }
+});
 function feed(e, from, to, options = {}) {
   const { dt = 20, gamma = t => 2 + .015 * Math.sin(t / 35), alpha = () => 359.99,
     rotation = .03, acceleration = .01 } = options;

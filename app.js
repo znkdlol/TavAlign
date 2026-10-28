@@ -2,7 +2,8 @@
   'use strict';
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
-  const { Engine, Display, wrap, correctedToe, CONFIG } = TavSensors;
+  const { Engine, Display, wrap, correctedToe, camberFromOrientation, CONFIG } = TavSensors;
+  const CAMBER_MODEL = 'screen-plane-v1';
   const engine = new Engine();
   const displays = { camber: new Display(), yaw: new Display() };
   const WHEELS = ['FL', 'FR', 'RL', 'RR'];
@@ -22,8 +23,11 @@
   alignment.quality ||= { camber: {}, toe: {} };
   alignment.quality.camber ||= {};
   alignment.quality.toe ||= {};
-  let camberZero = read('tavalign-camber-zero', 0);
-  if (!Number.isFinite(camberZero)) camberZero = 0;
+  const savedCalibration = read('tavalign-camber-calibration', null);
+  let zeroRequired = savedCalibration?.model !== CAMBER_MODEL || !Number.isFinite(savedCalibration?.zero);
+  // The old gamma zero is a different physical axis. Keep it in storage for
+  // history, but never apply it to the corrected measurement.
+  let camberZero = zeroRequired ? 0 : savedCalibration.zero;
   let invertCamber = read('tavalign-invert-camber', false) === true;
   let invertToe = read('tavalign-invert-toe', false) === true;
   $('#invertCamber').checked = invertCamber;
@@ -53,7 +57,7 @@
     if (toeStep > 0 && toeStep < 3 && ((!Number.isFinite(e.alpha)) || (last && now - last.t > CONFIG.staleMs))) {
       cancelCapture(); resetToeFlow(); message('Yaw stream interrupted. Start with a fresh body reference.');
     }
-    engine.orientation(now, e.gamma, e.alpha);
+    engine.orientation(now, camberFromOrientation(e.beta, e.gamma), e.alpha);
   }
   function onMotion(e) {
     if (document.hidden) return;
@@ -98,11 +102,12 @@
   }
   function startCapture(kind, purpose) {
     if (pending) return;
+    if (purpose === 'camber' && zeroRequired) { message('Average a fresh fixture zero before saving camber.'); return; }
     if (!engine.start(kind, performance.now())) { message('Wait for Ready, then capture.'); return; }
     pending = { purpose, wheel: kind === 'camber' ? selectedCamberWheel : selectedToeWheel, step: toeStep };
     message('Averaging for 1.5 seconds. Keep the fixture still.'); renderLive();
   }
-  function context(type) { return type === 'camber' ? `${camberZero}:${invertCamber}` : String(invertToe); }
+  function context(type) { return type === 'camber' ? `${CAMBER_MODEL}:${camberZero}:${invertCamber}` : String(invertToe); }
   function record(type, wheel, value, capture, extra = {}) {
     const old = alignment.quality[type][wheel];
     const history = old?.context === context(type) && Array.isArray(old.history) ? old.history : [];
@@ -114,6 +119,8 @@
   }
   function qualityText(type, wheel) {
     const q = alignment.quality[type][wheel];
+    if (type === 'camber' && Number.isFinite(alignment.camber[wheel]) && !q?.context?.startsWith(`${CAMBER_MODEL}:`))
+      return 'Earlier camber axis · measure again';
     if (!q) return Number.isFinite(alignment[type][wheel]) ? 'Earlier reading · repeat check needed' : 'No capture yet';
     if (q.context !== context(type)) return 'Settings changed · measure again';
     const values = (q.history || []).map(h => h.value);
@@ -128,7 +135,8 @@
     if (!p) return;
     if (!result.ok) { message(result.reason); return; }
     if (p.purpose === 'zero') {
-      camberZero = result.value; write('tavalign-camber-zero', camberZero);
+      camberZero = result.value; zeroRequired = false;
+      write('tavalign-camber-calibration', { model: CAMBER_MODEL, zero: camberZero });
       displays.camber.reset(); renderResults();
       message(`Fixture zero averaged and saved. Noise ${result.sd.toFixed(3)}° SD. Move to the wheel.`);
     } else if (p.purpose === 'camber') {
@@ -182,10 +190,10 @@
         `Signal noise ${state.summary.sd.toFixed(2)}° SD · ${state.fullMotion ? 'motion checked' : 'rotation only'}` :
         'Hold the fixture still until Ready');
     }
-    $('#saveCamberBtn').disabled = !!pending || !c.ready;
+    $('#saveCamberBtn').disabled = !!pending || !c.ready || zeroRequired;
     $('#zeroCamberBtn').disabled = !!pending || !c.ready;
     $('#toeCaptureBtn').disabled = !!pending || (toeStep !== 3 && !y.ready);
-    text('#saveCamberBtn', pending?.purpose === 'camber' ? 'Averaging…' : `Capture ${selectedCamberWheel} camber`);
+    text('#saveCamberBtn', pending?.purpose === 'camber' ? 'Averaging…' : zeroRequired ? 'Set fixture zero first' : `Capture ${selectedCamberWheel} camber`);
     $('#cancelCaptureBtn').classList.toggle('hidden', !pending);
     $('#captureProgress').classList.toggle('hidden', !pending);
     $('#captureProgress').value = active ? Math.min(100, (now - active.start) / CONFIG.captureMs * 100) : 0;
@@ -194,7 +202,7 @@
       text('#sensorState', live ? 'Receiving sensors · steady display' : 'Waiting for sensors · keep the app open');
       $('#sensorState').className = `status ${live ? 'good' : 'bad'}`;
     }
-    text('#zeroNote', `Saved fixture zero: ${fmt(camberZero)} · v2.0`);
+    text('#zeroNote', zeroRequired ? 'v2.1 axis correction: average a fresh fixture zero before saving camber.' : `Saved fixture zero: ${fmt(camberZero)} · v2.1`);
   }
   function renderToeStep() {
     const titles = ['Body reference', 'Wheel', 'Body reference again', 'Measurement complete'];
@@ -242,8 +250,8 @@
   $('#saveCamberBtn').addEventListener('click', () => startCapture('camber', 'camber'));
   $('#zeroCamberBtn').addEventListener('click', () => startCapture('camber', 'zero'));
   $('#clearCamberBtn').addEventListener('click', () => {
-    cancelCapture(); camberZero = 0; write('tavalign-camber-zero', 0);
-    displays.camber.reset(); renderResults(); renderLive(); message('Fixture zero cleared. Earlier saved readings are unchanged.');
+    cancelCapture(); camberZero = 0; zeroRequired = true; write('tavalign-camber-calibration', null);
+    displays.camber.reset(); renderResults(); renderLive(); message('Fixture zero cleared. Average a fresh zero before saving camber.');
   });
   $('#invertCamber').addEventListener('change', e => {
     cancelCapture(); invertCamber = e.target.checked; write('tavalign-invert-camber', invertCamber);

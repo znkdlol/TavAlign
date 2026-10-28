@@ -1,6 +1,8 @@
 # TavAlign Web
 
-## Version 2.0: steady readings and averaged captures
+## Version 2.1: corrected camber axis, steady readings and averaged captures
+
+Camber now measures forward/back inclination of the screen/fixture plane from vertical. Keep the phone's screen facing outward, parallel to the wheel face. The earlier direct gamma reading measured the wrong component for this mounting. Version 2.1 requires a fresh averaged fixture zero and marks earlier camber results for remeasurement. Toe calculations are unchanged.
 
 See **UPLOAD.md** for replacing an existing GitHub Pages installation, including the first update from the old offline cache. No build tools, server, account changes, or new hosting are needed.
 
@@ -10,7 +12,7 @@ See **UPLOAD.md** for replacing an existing GitHub Pages installation, including
 - Movement, lost sensors, cancellation, navigation or changing the selected wheel cancels an unfinished capture. Backgrounding or rotating the phone resets sensors and unfinished toe sequences. Stay in portrait with the top edge up.
 - Toe retains reference → wheel → reference and interpolates drift at the averaged captures' time midpoints. Circular angle math handles 0°/360° correctly. Reference drift above 0.25° rejects the attempt without replacing an earlier result. Finish the sequence within two minutes.
 - Current Alignment shows the spread of the last five accepted captures per wheel. Three or more within 0.10° camber / 0.15° toe are labelled repeatable. These are provisional consistency thresholds, not accuracy specifications. Remove and reseat between captures; start a new repeat check after changing the car.
-- Existing angles, zero, polarity and archives retain their storage keys. Older readings are labelled as needing a repeat check. Changing zero or polarity marks affected old readings for remeasurement instead of rewriting them.
+- Existing angles, polarity and archives remain stored. The old wrong-axis zero is retained for history but is not applied. The corrected zero is stored separately with a measurement-model identifier. Older camber readings are labelled for remeasurement. Changing zero or polarity marks affected old readings for remeasurement instead of rewriting them.
 
 ### Tuning and limitations
 
@@ -20,7 +22,9 @@ Entry motion limits are 0.65°/second rotation magnitude and 0.12 m/s² linear a
 
 The display filter uses a 180 ms time constant while moving and 450 ms once ready. Display rounding uses 0.01° steps plus a 0.008° hysteresis margin. This provides calm feedback while retaining full-precision averages in storage.
 
-Smoothing cannot calibrate the phone, correct fixture/runout errors, fix orientation-angle singularities, or remove nonlinear yaw drift. This update preserves the original gamma-based camber geometry and alpha-based toe method. A stable value is not evidence of absolute accuracy, and a low endpoint drift does not prove the yaw was accurate at the wheel. Do not infer 0.01° accuracy from two displayed decimals. Validate on your actual phone and fixture against known angles and a separate reference method.
+Camber is calculated as `-asin(cos(beta) * cos(gamma))`, using radians internally. This derives the screen normal's vertical component from the W3C rotation matrix, giving continuous camber through upright and avoiding false camber from pure in-plane sideways lean. With the screen outward and default polarity, top outward is positive and top inward is negative. Verify your fixture's sign; the invert setting is retained.
+
+Smoothing cannot calibrate the phone, correct fixture/runout errors, or remove nonlinear yaw drift. The alpha-based toe method is unchanged and still has limitations near orientation singularities. A stable value is not evidence of absolute accuracy, and a low endpoint drift does not prove the yaw was accurate at the wheel. Do not infer 0.01° accuracy from two displayed decimals. Validate on your actual phone and fixture against known angles and a separate reference method.
 
 ### Verification
 

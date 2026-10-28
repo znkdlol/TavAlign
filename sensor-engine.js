@@ -1,4 +1,4 @@
-/* TavAlign 2.0 — display filtering is deliberately separate from capture data. */
+/* TavAlign 2.1 — display filtering is deliberately separate from capture data. */
 (function (root, factory) {
   const api = factory();
   if (typeof module === 'object' && module.exports) module.exports = api;
@@ -14,6 +14,17 @@
   const wrap = x => ((x + 180) % 360 + 360) % 360 - 180;
   const delta = (a, b) => wrap(b - a);
   const median = a => [...a].sort((x, y) => x - y)[Math.floor(a.length / 2)];
+
+  // Inclination of the screen/fixture plane from vertical, not sideways roll.
+  // W3C Rz(alpha) Rx(beta) Ry(gamma): world-up dot screen-normal = cos(beta) cos(gamma).
+  // The vector projection stays continuous through upright (beta = 90 degrees).
+  // Screen outward: top toward the viewer is positive; top into the car negative.
+  function camberFromOrientation(beta, gamma) {
+    if (!Number.isFinite(beta) || !Number.isFinite(gamma)) return null;
+    const radians = Math.PI / 180;
+    const upDotNormal = Math.cos(beta * radians) * Math.cos(gamma * radians);
+    return -Math.asin(Math.max(-1, Math.min(1, upDotNormal))) / radians;
+  }
 
   // Trapezoidal time weights avoid overweighting bursts of sensor events.
   function stats(points) {
@@ -56,8 +67,8 @@
         acceleration: Number.isFinite(acceleration) ? acceleration : null };
       this.tick(t);
     }
-    orientation(t, gamma, alpha) {
-      this.add('camber', t, gamma);
+    orientation(t, camberAngle, alpha) {
+      this.add('camber', t, camberAngle);
       this.add('yaw', t, alpha);
       this.tick(t);
       const capture = this.capture;
@@ -169,5 +180,5 @@
     const relative = delta(start.value + drift * p, wheel.value);
     return { toe: relative * (wheelName.endsWith('L') ? -1 : 1) * (invert ? -1 : 1), drift };
   }
-  return { CONFIG, Engine, Display, stats, wrap, delta, correctedToe };
+  return { CONFIG, Engine, Display, stats, wrap, delta, correctedToe, camberFromOrientation };
 });

@@ -1,4 +1,6 @@
-# TavAlign 2.0 verification
+# TavAlign 2.1 verification
+
+Version 2.1 adds six physical-axis regression tests: upright zero, opposite forward/back signs, continuity through upright, zero for pure sideways lean, invariance under rotation within the screen plane, and invalid component handling. All **28** deterministic tests pass. Browser coverage includes the new zero requirement, preserving but ignoring the legacy axis zero, and forward/back sign changes. Updating an installed v2.0 app to v2.1 through its update banner and reloading offline also passed. These tests validate the math and wiring using simulated input; actual phone accuracy still requires the physical checks below.
 
 Source baseline: public `znkdlol/TavAlign` main commit `8e90cb897e9800a255c0b549d7ab0e516b4134f4`.
 
@@ -23,3 +25,4 @@ The default thresholds are engineering starting points. If actual stationary noi
 - Device orientation data and permission behavior: https://developer.mozilla.org/en-US/docs/Web/API/DeviceOrientationEvent
 - Motion data fields: https://developer.mozilla.org/en-US/docs/Web/API/DeviceMotionEvent
 - Service worker update checks: https://developer.mozilla.org/en-US/docs/Web/API/ServiceWorkerRegistration/update
+- Orientation axes and rotation matrix: https://www.w3.org/TR/orientation-event/#worked-example-2
