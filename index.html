@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+  <meta name="theme-color" content="#0b0d10" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="TavAlign" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="icon-180.png" />
+  <link rel="stylesheet" href="styles.css" />
+  <title>TavAlign</title>
+</head>
+<body>
+  <div id="app">
+    <header class="topbar">
+      <div>
+        <div class="eyebrow">TAV GARAGE</div>
+        <h1>TavAlign</h1>
+      </div>
+      <button id="sensorBtn" class="pill primary">Enable sensors</button>
+    </header>
+
+    <main>
+      <section id="homeView" class="view active">
+        <div class="hero card">
+          <div class="hero-kicker">PHONE-BASED ALIGNMENT</div>
+          <h2>Measure. Adjust. Repeat.</h2>
+          <p>Camber and drift-corrected toe from the phone already in your pocket.</p>
+          <div id="sensorState" class="status bad">Sensors not enabled</div>
+        </div>
+
+        <div class="tool-grid">
+          <button class="tool-card" data-go="camberView">
+            <span class="tool-icon">◒</span>
+            <span>
+              <strong>Camber</strong>
+              <small>Gravity-referenced wheel angle</small>
+            </span>
+            <span class="chev">›</span>
+          </button>
+
+          <button class="tool-card" data-go="toeView">
+            <span class="tool-icon">↔</span>
+            <span>
+              <strong>Body Toe</strong>
+              <small>Reference → wheel → reference</small>
+            </span>
+            <span class="chev">›</span>
+          </button>
+
+          <button class="tool-card" data-go="resultsView">
+            <span class="tool-icon">▰</span>
+            <span>
+              <strong>Current Alignment</strong>
+              <small>Four-corner results and axle totals</small>
+            </span>
+            <span class="chev">›</span>
+          </button>
+        </div>
+
+        <div class="card muted-card">
+          <h3>Fixture orientation</h3>
+          <p>Keep the phone portrait, top edge up, and screen facing outward. Use the same physical contact points on the rim every time.</p>
+        </div>
+      </section>
+
+      <section id="camberView" class="view">
+        <div class="view-head">
+          <button class="back" data-go="homeView">‹</button>
+          <h2>Camber</h2>
+          <span></span>
+        </div>
+
+        <div class="segmented wheel-picker" data-picker="camber">
+          <button data-wheel="FL" class="selected">FL</button>
+          <button data-wheel="FR">FR</button>
+          <button data-wheel="RL">RL</button>
+          <button data-wheel="RR">RR</button>
+        </div>
+
+        <div class="reading-wrap">
+          <div id="camberReading" class="big-reading">+0.00°</div>
+          <div id="camberStable" class="stability">Hold still</div>
+        </div>
+
+        <button id="saveCamberBtn" class="action primary wide">Save FL camber</button>
+
+        <div class="card">
+          <h3>Fixture zero</h3>
+          <p>Place the fixture on a known vertical surface in the same orientation used on the wheel, then zero it.</p>
+          <div class="row">
+            <button id="zeroCamberBtn" class="pill">Zero current angle</button>
+            <button id="clearCamberBtn" class="pill">Clear zero</button>
+          </div>
+          <label class="toggle-row">
+            <span>Invert camber sign</span>
+            <input id="invertCamber" type="checkbox" />
+          </label>
+        </div>
+      </section>
+
+      <section id="toeView" class="view">
+        <div class="view-head">
+          <button class="back" data-go="homeView">‹</button>
+          <h2>Body Toe</h2>
+          <span></span>
+        </div>
+
+        <div class="segmented wheel-picker" data-picker="toe">
+          <button data-wheel="FL" class="selected">FL</button>
+          <button data-wheel="FR">FR</button>
+          <button data-wheel="RL">RL</button>
+          <button data-wheel="RR">RR</button>
+        </div>
+
+        <div class="step card">
+          <div id="toeStepLabel" class="step-num">STEP 1 OF 3</div>
+          <h3 id="toeStepTitle">Body reference</h3>
+          <p id="toeStepText">Place the fixture against a straight reference parallel to vehicle centerline on the same side as the wheel.</p>
+        </div>
+
+        <div class="reading-wrap compact">
+          <div id="yawReading" class="medium-reading">+0.00°</div>
+          <div class="reading-caption">live yaw</div>
+          <div id="toeStable" class="stability">Hold still</div>
+        </div>
+
+        <button id="toeCaptureBtn" class="action primary wide">Capture reference</button>
+
+        <div id="toeResultCard" class="card hidden">
+          <div class="result-grid">
+            <div>
+              <small id="toeResultLabel">FL toe</small>
+              <strong id="toeResult">—</strong>
+            </div>
+            <div>
+              <small>Reference drift</small>
+              <strong id="driftResult">—</strong>
+            </div>
+          </div>
+          <p id="driftNote"></p>
+        </div>
+
+        <div class="card">
+          <h3>Measurement logic</h3>
+          <p>TavAlign measures the same body reference before and after the wheel, estimates how much yaw drift occurred, then subtracts that drift from the wheel reading.</p>
+          <label class="toggle-row">
+            <span>Invert toe polarity</span>
+            <input id="invertToe" type="checkbox" />
+          </label>
+        </div>
+      </section>
+
+      <section id="resultsView" class="view">
+        <div class="view-head">
+          <button class="back" data-go="homeView">‹</button>
+          <h2>Current Alignment</h2>
+          <button id="resetSessionBtn" class="text-btn">Reset</button>
+        </div>
+
+        <div class="axle-label">FRONT</div>
+        <div class="wheel-results">
+          <div class="card result-card"><h3>FL</h3><p>Camber <strong id="FL-camber">—</strong></p><p>Toe <strong id="FL-toe">—</strong></p></div>
+          <div class="card result-card"><h3>FR</h3><p>Camber <strong id="FR-camber">—</strong></p><p>Toe <strong id="FR-toe">—</strong></p></div>
+        </div>
+
+        <div class="axle-label">REAR</div>
+        <div class="wheel-results">
+          <div class="card result-card"><h3>RL</h3><p>Camber <strong id="RL-camber">—</strong></p><p>Toe <strong id="RL-toe">—</strong></p></div>
+          <div class="card result-card"><h3>RR</h3><p>Camber <strong id="RR-camber">—</strong></p><p>Toe <strong id="RR-toe">—</strong></p></div>
+        </div>
+
+        <div class="summary-grid">
+          <div class="card metric"><small>Front total toe</small><strong id="frontTotal">—</strong></div>
+          <div class="card metric"><small>Rear total toe</small><strong id="rearTotal">—</strong></div>
+          <div class="card metric"><small>Front steer angle</small><strong id="frontSteer">—</strong></div>
+          <div class="card metric"><small>Rear thrust angle</small><strong id="rearThrust">—</strong></div>
+        </div>
+
+        <button id="archiveBtn" class="action primary wide">Archive alignment</button>
+        <div id="archiveMsg" class="center-note"></div>
+      </section>
+    </main>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
