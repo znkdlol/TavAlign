@@ -1,12 +1,16 @@
 # TavAlign Web
 
-## Version 2.2: screen-up mounting and explicit reference selection
+## Version 2.3: camera-end-forward camber axis and landscape sensors
 
-Choose the phone's position **during the wheel measurement** in Camber. The default is **Facing up toward the sky**, using signed forward/back pitch around horizontal. Keep the phone seated in the printed mount when calibrating and measuring. Use the assembled fixture's known-level reference position to average the zero. An arbitrary tabletop is not automatically level, and zeroing on the wheel being measured subtracts its actual angle.
+Choose the phone's position **during the wheel measurement** in Camber. The default is **Facing up toward the sky**, with **Left / right edges (camera end forward)** as the camber axis. This follows the clarified fixture direction: the camera end points toward the front of the car, and lowering the left edge from screen-up should be negative with inversion off. Version 2.2 instead measured camera-to-charging-end tilt. That remains an explicit alternate axis, not the default.
+
+Keep the phone seated in the printed mount when calibrating and measuring. Use the assembled fixture's known-level reference position to average the zero. An arbitrary tabletop is not automatically level, and zeroing on the wheel being measured subtracts its actual angle. A zero from the other axis is not applied. The app now accepts sensor events in portrait and landscape; browser screen rotation does not redefine physical sensor axes.
+
+Open **Check which axis is moving** to see unzeroed left/right tilt, camera/charging-end tilt, and the reported beta/gamma angles. These are diagnostic readings and ignore the saved fixture zero and invert setting. If screen-up mode is selected but the phone is held upright against a wall, the panel identifies the incompatible pose. Select **Facing outward from the wheel** when that is the actual measurement position.
 
 **Facing outward from the wheel** retains the v2.1 screen-plane inclination calculation and uses a known vertical fixture reference. These are different mounting arrangements, with separate measurement-model identifiers. Switching position resets the sensor window and blocks saving until a matching calibration is available. A screen-up measurement rejects an upright or face-down phone instead of quietly applying an incompatible reference. Existing readings remain stored and are labelled for remeasurement when their mounting reference differs.
 
-This measures the phone/fixture inclination. It represents wheel camber only if the fixture transfers the wheel's camber rotation to the phone's forward/back measurement plane and its reference position represents zero wheel camber. That mechanical relationship cannot be established from a screenshot or the provided sliced print package alone. Confirm it with a known reference. Toe calculations are unchanged.
+This measures the phone/fixture inclination. It represents wheel camber only if the fixture transfers the wheel's camber rotation to the selected phone measurement plane and its reference position represents zero wheel camber. That mechanical relationship cannot be established from a screenshot or the provided sliced print package alone. Confirm it with a known reference. Toe calculations are unchanged.
 
 See **UPLOAD.md** for replacing an existing GitHub Pages installation, including the first update from the old offline cache. No build tools, server, account changes, or new hosting are needed.
 
@@ -26,7 +30,7 @@ Entry motion limits are 0.65°/second rotation magnitude and 0.12 m/s² linear a
 
 The display filter uses a 180 ms time constant while moving and 450 ms once ready. Display rounding uses 0.01° steps plus a 0.008° hysteresis margin. This provides calm feedback while retaining full-precision averages in storage.
 
-Screen-up mode uses `atan2(sin(beta), cos(beta) * cos(gamma))`, with radians internally. The W3C rotation matrix supplies the top-axis and screen-normal vertical components. This keeps opposite signs on both sides of horizontal, unlike screen-plane inclination alone. Pure sideways roll around a level forward/back axis gives zero pitch. Hold the same fixture direction during calibration and measurement. The screen normal must remain within 60° of upward; otherwise capture is blocked.
+Screen-up **left/right** mode uses `atan2(cos(beta) * sin(gamma), cos(beta) * cos(gamma))`. It measures rotation about the phone's camera-to-port axis, with left edge down negative. The alternate **camera/charging** mode uses `atan2(sin(beta), cos(beta) * cos(gamma))`. Both use radians internally and derive vertical components from the W3C rotation matrix. They retain opposite signs on both sides of horizontal. Hold the same fixture direction during calibration and measurement. The screen normal must remain within 60° of upward; otherwise capture is blocked and the diagnostic panel explains the mismatch.
 
 Screen-outward mode uses `-asin(cos(beta) * cos(gamma))` as in v2.1. Its zero reference is vertical. Verify sign for the actual fixture: a known inward lean of the wheel reference must read negative. Use Invert camber sign if the fixture reverses the direction; never change the zero simply to force a known -3° result.
 

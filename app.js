@@ -24,7 +24,9 @@
   alignment.quality.toe ||= {};
   let mountPosition = read('tavalign-mount-position', 'flat');
   if (!['flat', 'vertical'].includes(mountPosition)) mountPosition = 'flat';
-  const camberModel = () => mountPosition === 'flat' ? 'screen-up-pitch-v1' : 'screen-plane-v1';
+  let mountAxis = read('tavalign-mount-axis', 'roll');
+  if (!['roll', 'pitch'].includes(mountAxis)) mountAxis = 'roll';
+  const camberModel = () => mountPosition === 'flat' ? `screen-up-${mountAxis}-v1` : 'screen-plane-v1';
   const savedCalibration = read('tavalign-camber-calibration', null);
   let zeroRequired = savedCalibration?.model !== camberModel() || !Number.isFinite(savedCalibration?.zero);
   // The old gamma zero is a different physical axis. Keep it in storage for
@@ -35,7 +37,9 @@
   $('#invertCamber').checked = invertCamber;
   $('#invertToe').checked = invertToe;
   $('#mountPosition').value = mountPosition;
+  $('#mountAxis').value = mountAxis;
   let wrongMountPose = false;
+  let diagnostic = { t: -Infinity, roll: null, pitch: null, beta: null, gamma: null };
 
   function fmt(value) {
     if (!Number.isFinite(value)) return '—';
@@ -55,13 +59,16 @@
   function onOrientation(e) {
     if (document.hidden) return;
     const now = performance.now();
-    const angle = screen.orientation?.angle ?? window.orientation ?? 0;
-    if (angle !== 0) return;
+    // Device sensor axes do not change with the browser's portrait/landscape
+    // layout. A camera-end-forward fixture must also work in landscape.
+    diagnostic = { t: now, beta: e.beta, gamma: e.gamma,
+      roll: camberFromOrientation(e.beta, e.gamma, 'flat', 'roll'),
+      pitch: camberFromOrientation(e.beta, e.gamma, 'flat', 'pitch') };
     const last = engine.channels.yaw.last;
     if (toeStep > 0 && toeStep < 3 && ((!Number.isFinite(e.alpha)) || (last && now - last.t > CONFIG.staleMs))) {
       cancelCapture(); resetToeFlow(); message('Yaw stream interrupted. Start with a fresh body reference.');
     }
-    const camberAngle = camberFromOrientation(e.beta, e.gamma, mountPosition);
+    const camberAngle = camberFromOrientation(e.beta, e.gamma, mountPosition, mountAxis);
     wrongMountPose = Number.isFinite(e.beta) && Number.isFinite(e.gamma) && camberAngle === null;
     engine.orientation(now, camberAngle, e.alpha);
   }
@@ -104,6 +111,7 @@
   }
   function resetStream(note) {
     cancelCapture(); engine.reset(); displays.camber.reset(); displays.yaw.reset();
+    diagnostic.t = -Infinity; wrongMountPose = false;
     resetToeFlow(); message(note);
   }
   function startCapture(kind, purpose) {
@@ -209,11 +217,20 @@
       text('#sensorState', live ? 'Receiving sensors · steady display' : 'Waiting for sensors · keep the app open');
       $('#sensorState').className = `status ${live ? 'good' : 'bad'}`;
     }
-    text('#camberCaption', mountPosition === 'flat' ? 'SCREEN UP · SIGNED FORWARD / BACK TILT' : 'SCREEN OUTWARD · TILT FROM VERTICAL');
+    text('#camberCaption', mountPosition === 'flat' ? (mountAxis === 'roll' ? 'SCREEN UP · LEFT / RIGHT EDGE TILT' : 'SCREEN UP · CAMERA / CHARGING END TILT') : 'SCREEN OUTWARD · TILT FROM VERTICAL');
+    $('#axisControl').classList.toggle('hidden', mountPosition !== 'flat');
     text('#mountInstructions', mountPosition === 'flat' ?
-      'Keep the phone seated in the mount, screen facing the sky. Set the assembled fixture in its known-level reference position and average the zero. Keep the same seating and direction when measuring. Do not zero against the wheel being measured.' :
+      `Keep the phone seated, screen facing the sky. ${mountAxis === 'roll' ? 'Measure tilt across the left/right edges; the camera end can point toward the front of the car.' : 'Measure tilt between the camera and charging ends.'} Set the assembled fixture in its known-level reference position and average the zero. Do not zero against the wheel being measured.` :
       'Keep the phone seated with its screen outward, parallel to the wheel face. Set the fixture contact points against a known vertical reference and average the zero.');
-    text('#zeroNote', zeroRequired ? 'v2.2: average a fresh fixture zero for this mounting position before saving camber.' : `Saved fixture zero: ${fmt(camberZero)} · v2.2`);
+    text('#zeroNote', zeroRequired ? 'v2.3: average a fresh fixture zero for this mounting position and axis before saving camber.' : `Saved fixture zero: ${fmt(camberZero)} · v2.3`);
+    const freshDiagnostic = now - diagnostic.t <= CONFIG.staleMs;
+    text('#diagnosticRoll', fmt(freshDiagnostic ? diagnostic.roll : null));
+    text('#diagnosticPitch', fmt(freshDiagnostic ? diagnostic.pitch : null));
+    text('#diagnosticBeta', fmt(freshDiagnostic ? diagnostic.beta : null));
+    text('#diagnosticGamma', fmt(freshDiagnostic ? diagnostic.gamma : null));
+    text('#diagnosticPose', !freshDiagnostic ? 'Waiting for current sensor data.' : wrongMountPose ?
+      'The screen is not facing upward. If it faces you while against the wall or wheel, select Facing outward from the wheel.' :
+      'These checks show unzeroed tilt. They ignore the fixture zero and invert setting.');
   }
   function renderToeStep() {
     const titles = ['Body reference', 'Wheel', 'Body reference again', 'Measurement complete'];
@@ -270,6 +287,15 @@
     resetStream('Mount position changed. Check the reference instructions and fixture zero.');
     renderResults(); renderLive();
   });
+  $('#mountAxis').addEventListener('change', e => {
+    mountAxis = e.target.value;
+    write('tavalign-mount-axis', mountAxis);
+    const calibration = read('tavalign-camber-calibration', null);
+    zeroRequired = calibration?.model !== camberModel() || !Number.isFinite(calibration?.zero);
+    camberZero = zeroRequired ? 0 : calibration.zero;
+    resetStream('Measurement axis changed. Average a matching fixture zero before saving.');
+    renderResults(); renderLive();
+  });
   $('#clearCamberBtn').addEventListener('click', () => {
     cancelCapture(); camberZero = 0; zeroRequired = true; write('tavalign-camber-calibration', null);
     displays.camber.reset(); renderResults(); renderLive(); message('Fixture zero cleared. Average a fresh zero before saving camber.');
@@ -311,7 +337,7 @@
   });
   window.addEventListener('pagehide', () => resetStream(''));
   window.addEventListener('pageshow', e => { if (e.persisted) resetStream('Sensors are settling again.'); });
-  const screenChange = () => resetStream('Phone orientation changed. Keep portrait and start again.');
+  const screenChange = () => resetStream('Phone rotated. Hold still before capturing again.');
   window.addEventListener('orientationchange', screenChange);
   screen.orientation?.addEventListener('change', screenChange);
   $('#homeView [data-feedback]').appendChild($('.capture-feedback'));

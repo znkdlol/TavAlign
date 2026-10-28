@@ -18,6 +18,12 @@ body { min-height: 100vh; min-height: 100dvh; }
 button, input { font: inherit; }
 select { font: inherit; color: var(--text); background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px; width: 100%; margin: 8px 0 14px; }
 .mount-label { font-size: 13px; color: var(--muted); }
+.sensor-check summary { cursor: pointer; font-weight: 700; }
+.sensor-check p { font-size: 13px; margin-top: 12px; }
+.sensor-check dl { margin: 14px 0; font-size: 13px; }
+.sensor-check dl div { display: flex; justify-content: space-between; gap: 8px; margin-top: 8px; }
+.sensor-check dt { color: var(--muted); }
+.sensor-check dd { margin: 0; font-variant-numeric: tabular-nums; }
 button { color: inherit; }
 #app { max-width: 620px; margin: 0 auto; min-height: 100dvh; padding: env(safe-area-inset-top) 16px calc(24px + env(safe-area-inset-bottom)); }
 .topbar { display: flex; align-items: center; justify-content: space-between; padding: 18px 2px 14px; }

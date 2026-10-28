@@ -1,4 +1,8 @@
-# TavAlign 2.2 verification
+# TavAlign 2.3 verification
+
+Version 2.3 adds four tests for the clarified left/right camber axis: default axis isolation, left-edge-down sign from a rotation matrix, combined pitch/roll, and rejection of unknown axes. All **37** sensor tests pass. Browser tests cover separate diagnostic readings, default left/right mode, calibration invalidation on an axis change, restoration of matching calibration, and continued operation with a landscape screen angle of 90°. The existing camber/zero/toe/cancellation/offline checks and upgrade from v2.2 also pass.
+
+This is simulated verification of the described movement, not proof of the actual fixture's wheel-camber accuracy. The diagnostic panel exposes both tilt directions to resolve any remaining mismatch on the user's phone. No additional physical-axis assumptions should be made from an expected -3.x° value.
 
 Version 2.2 adds five screen-up tests for horizontal zero, signed pitch including +/-3.2°, sideways-roll rejection, incompatible mounting rejection, and projection of a known gravity vector. All **33** sensor tests pass. Browser integration covers the screen-up default, ignoring a stored v2.1 calibration in that mode, averaged zero, opposite pitch signs, switching mounting position, capture blocking in an upright pose, recovery, and the existing capture/toe/offline flows. Updating an installed v2.1 app through the update banner also passes.
 

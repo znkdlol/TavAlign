@@ -44,10 +44,10 @@ function feed(e, from, to, options = {}) {
 }
 test('screen-up mounting defaults to zero on a horizontal reference', () => near(camberFromOrientation(0, 0), 0));
 test('screen-up pitch retains sign on both sides of horizontal', () => {
-  for (const pitch of [-5, -3.2, -.01, 0, .01, 3.2, 5]) near(camberFromOrientation(pitch, 0), pitch);
+  for (const pitch of [-5, -3.2, -.01, 0, .01, 3.2, 5]) near(camberFromOrientation(pitch, 0, 'flat', 'pitch'), pitch);
 });
 test('screen-up sideways roll alone produces no forward/back camber', () => {
-  for (const roll of [-20, -10, 0, 10, 20]) near(camberFromOrientation(0, roll), 0);
+  for (const roll of [-20, -10, 0, 10, 20]) near(camberFromOrientation(0, roll, 'flat', 'pitch'), 0);
 });
 test('screen-up mode rejects upright and face-down positions', () => {
   assert.equal(camberFromOrientation(90, 0), null);
@@ -58,7 +58,31 @@ test('screen-up pitch projection agrees with a known gravity vector', () => {
   const beta = Math.asin(Math.sin(pitch * rad) * Math.cos(roll * rad)) / rad;
   const gz = Math.cos(pitch * rad) * Math.cos(roll * rad);
   const gamma = Math.acos(gz / Math.cos(beta * rad)) / rad;
-  near(camberFromOrientation(beta, gamma), pitch);
+  near(camberFromOrientation(beta, gamma, 'flat', 'pitch'), pitch);
+});
+test('default axis follows left/right edge tilt, not camera/port tilt', () => {
+  near(camberFromOrientation(0, -3.2), -3.2);
+  near(camberFromOrientation(0, 3.2), 3.2);
+  near(camberFromOrientation(-3.2, 0), 0);
+  near(camberFromOrientation(3.2, 0), 0);
+});
+test('left edge lowered is negative from an independent rotation matrix', () => {
+  const rad = Math.PI / 180;
+  for (const angle of [-10, -3.2, -.1, .1, 3.2, 10]) {
+    // Ry(angle): right-axis height = -sin(angle). Negative angle therefore
+    // lifts the right edge and lowers the left edge of a face-up phone.
+    const rightEdgeHeight = -Math.sin(angle * rad);
+    const screenNormalHeight = Math.cos(angle * rad);
+    const sensedGamma = Math.atan2(-rightEdgeHeight, screenNormalHeight) / rad;
+    near(camberFromOrientation(0, sensedGamma), angle);
+    assert.equal(Math.sign(camberFromOrientation(0, sensedGamma)), Math.sign(-rightEdgeHeight));
+  }
+});
+test('roll projection preserves angle with simultaneous camera-end tilt', () => {
+  for (const pitch of [-25, 0, 25]) for (const roll of [-5, 0, 5]) near(camberFromOrientation(pitch, roll), roll);
+});
+test('unknown axis is unavailable rather than silently falling back', () => {
+  assert.equal(camberFromOrientation(0, 2, 'flat', 'unknown'), null);
 });
 function ready(options) { const e = new Engine(); feed(e, 0, 3000, options); return e; }
 test('no fabricated zero or ready state before sensor data', () => {
