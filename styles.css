@@ -75,6 +75,32 @@ p { color: var(--muted); line-height: 1.45; margin: 0; }
 .summary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 16px 0; }
 .metric strong { font-size: 22px; }
 .center-note { color: var(--muted); text-align: center; min-height: 24px; padding-top: 9px; font-size: 13px; }
+button:disabled { opacity: .40; cursor: default; }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--good); outline-offset: 3px; }
+.reading-wrap { padding: 30px 0 24px; }
+.big-reading, .medium-reading { min-height: 1.25em; line-height: 1.25; }
+.reading-caption { font-size: 10px; letter-spacing: .10em; line-height: 1.6; }
+.stability { min-width: 120px; }
+progress { display: block; height: 4px; width: 100%; appearance: none; border: 0; border-radius: 4px; overflow: hidden; background: var(--line); accent-color: var(--good); }
+progress::-webkit-progress-bar { background: var(--line); }
+progress::-webkit-progress-value { background: var(--good); }
+progress::-moz-progress-bar { background: var(--good); }
+.settle-progress { width: 120px; margin: 10px auto; }
+.signal-note, .capture-hint { font-size: 12px; color: var(--muted); line-height: 1.5; }
+.signal-note { min-height: 18px; margin-top: 10px; }
+.capture-hint { text-align: center; margin-top: 9px; }
+.capture-feedback { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; margin: 16px 0; }
+.capture-feedback:has(#captureMessage:empty) { display: none; }
+#captureMessage:not(:empty) { padding: 14px 16px; font-size: 13px; line-height: 1.5; }
+#cancelCaptureBtn { margin: 0 16px 12px; }
+.repeat-card { margin-top: 16px; }
+.repeat-card p, .repeat-note { font-size: 13px; line-height: 1.5; }
+.repeat-card button { margin: 14px 0 4px; }
+.repeat-note { color: var(--muted); border-top: 1px solid var(--line); margin-top: 10px; padding-top: 10px; }
+.update-banner { display: flex; gap: 12px; justify-content: space-between; align-items: center; padding: 12px; background: var(--panel2); border-radius: 14px; font-size: 13px; }
+footer { padding: 20px 3px 0; }
+footer p { font-size: 11px; line-height: 1.6; margin-top: 8px; }
+@media (prefers-reduced-motion: reduce) { .view { animation: none; } }
 @media (max-width: 360px) {
   .wheel-results, .summary-grid { grid-template-columns: 1fr; }
 }

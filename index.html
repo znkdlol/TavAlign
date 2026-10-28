@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#0b0d10" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -22,14 +22,16 @@
       <button id="sensorBtn" class="pill primary">Enable sensors</button>
     </header>
 
+    <div id="updateBanner" class="update-banner hidden" role="status">An update is ready. <button id="updateBtn" class="pill">Update app</button></div>
     <main>
       <section id="homeView" class="view active">
         <div class="hero card">
           <div class="hero-kicker">PHONE-BASED ALIGNMENT</div>
           <h2>Measure. Adjust. Repeat.</h2>
-          <p>Camber and drift-corrected toe from the phone already in your pocket.</p>
+          <p>Settle the fixture. Capture an average. Check it again.</p>
           <div id="sensorState" class="status bad">Sensors not enabled</div>
         </div>
+        <div data-feedback></div>
 
         <div class="tool-grid">
           <button class="tool-card" data-go="camberView">
@@ -81,19 +83,25 @@
         </div>
 
         <div class="reading-wrap">
-          <div id="camberReading" class="big-reading">+0.00°</div>
-          <div id="camberStable" class="stability">Hold still</div>
+          <div class="reading-caption">LIVE CAMBER</div>
+          <div id="camberReading" class="big-reading">—</div>
+          <div id="camberStable" class="stability" role="status">Waiting for sensors</div>
+          <progress id="camberProgress" class="settle-progress" max="100" value="0" aria-label="Camber settling"></progress>
+          <div id="camberQuality" class="signal-note">Hold the fixture still until Ready</div>
         </div>
 
-        <button id="saveCamberBtn" class="action primary wide">Save FL camber</button>
+        <button id="saveCamberBtn" class="action primary wide" disabled>Capture FL camber</button>
+        <p class="capture-hint">Averages 1.5 seconds. Movement cancels the capture.</p>
+        <div data-feedback></div>
 
         <div class="card">
           <h3>Fixture zero</h3>
           <p>Place the fixture on a known vertical surface in the same orientation used on the wheel, then zero it.</p>
           <div class="row">
-            <button id="zeroCamberBtn" class="pill">Zero current angle</button>
+            <button id="zeroCamberBtn" class="pill" disabled>Average fixture zero</button>
             <button id="clearCamberBtn" class="pill">Clear zero</button>
           </div>
+          <p id="zeroNote" class="signal-note"></p>
           <label class="toggle-row">
             <span>Invert camber sign</span>
             <input id="invertCamber" type="checkbox" />
@@ -122,12 +130,17 @@
         </div>
 
         <div class="reading-wrap compact">
-          <div id="yawReading" class="medium-reading">+0.00°</div>
-          <div class="reading-caption">live yaw</div>
-          <div id="toeStable" class="stability">Hold still</div>
+          <div id="yawReading" class="medium-reading">—</div>
+          <div class="reading-caption">LIVE YAW · TOE IS CALCULATED AFTER STEP 3</div>
+          <div id="toeStable" class="stability" role="status">Waiting for sensors</div>
+          <progress id="toeProgress" class="settle-progress" max="100" value="0" aria-label="Toe settling"></progress>
+          <div id="toeQuality" class="signal-note">Hold the fixture still until Ready</div>
         </div>
 
-        <button id="toeCaptureBtn" class="action primary wide">Capture reference</button>
+        <button id="toeCaptureBtn" class="action primary wide" disabled>Capture reference</button>
+        <p class="capture-hint">Each step averages 1.5 seconds. Finish within 2 minutes.</p>
+        <div data-feedback></div>
+        <button id="restartToeBtn" class="text-btn wide">Restart this wheel</button>
 
         <div id="toeResultCard" class="card hidden">
           <div class="result-grid">
@@ -179,12 +192,33 @@
           <div class="card metric"><small>Rear thrust angle</small><strong id="rearThrust">—</strong></div>
         </div>
 
+        <div data-feedback></div>
         <button id="archiveBtn" class="action primary wide">Archive alignment</button>
         <div id="archiveMsg" class="center-note"></div>
+        <div class="card repeat-card">
+          <h3>Check repeatability</h3>
+          <p>Remove and reseat the fixture for 3–5 captures on the same wheel without adjusting the car. Spread compares your last five captures. Start a new check after an adjustment.</p>
+          <button id="repeatResetBtn" class="pill">Start new repeat check</button>
+          <div id="FL-quality" class="repeat-note"></div>
+          <div id="FR-quality" class="repeat-note"></div>
+          <div id="RL-quality" class="repeat-note"></div>
+          <div id="RR-quality" class="repeat-note"></div>
+        </div>
       </section>
     </main>
+    <div class="capture-feedback">
+      <progress id="captureProgress" class="hidden" max="100" value="0" aria-label="Capture averaging"></progress>
+      <div id="captureMessage" role="status" aria-live="polite"></div>
+      <button id="cancelCaptureBtn" class="pill hidden">Cancel capture</button>
+    </div>
+    <footer>
+      <p>Steadier readings, not a calibration guarantee. Repeatability describes consistency, not absolute accuracy. Validate camber and toe against a known gauge or strings.</p>
+      <p id="storageNote" role="status"></p>
+      <p id="offlineNote">TavAlign 2.0 · averaged capture · works offline after loading</p>
+    </footer>
   </div>
 
+  <script src="sensor-engine.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

@@ -1,0 +1,124 @@
+const { test } = require('node:test');
+const assert = require('node:assert/strict');
+const { Engine, Display, stats, correctedToe } = require('../sensor-engine.js');
+const near = (a, b, tolerance = .005) => assert.ok(Math.abs(a - b) < tolerance, `${a} != ${b}`);
+function feed(e, from, to, options = {}) {
+  const { dt = 20, gamma = t => 2 + .015 * Math.sin(t / 35), alpha = () => 359.99,
+    rotation = .03, acceleration = .01 } = options;
+  for (let t = from; t <= to; t += dt) {
+    e.motionSample(t, rotation, acceleration);
+    e.orientation(t, gamma(t), alpha(t));
+  }
+}
+function ready(options) { const e = new Engine(); feed(e, 0, 3000, options); return e; }
+test('no fabricated zero or ready state before sensor data', () => {
+  const e = new Engine(); assert.equal(e.status('camber', 0).value, null);
+  assert.equal(e.start('camber', 0), false);
+});
+test('steady signal needs a full window and continuous dwell', () => {
+  const e = new Engine(); feed(e, 0, 1800);
+  assert.equal(e.status('camber', 1800).ready, false);
+  feed(e, 1820, 3000); assert.equal(e.status('camber', 3000).ready, true);
+});
+test('EMA reduces live noise without changing capture data', () => {
+  const e = ready(); const filtered = [], raw = [];
+  for (let t = 3020; t <= 5000; t += 20) {
+    feed(e, t, t); filtered.push(e.status('camber', t).value); raw.push(2 + .015 * Math.sin(t / 35));
+  }
+  const range = a => Math.max(...a) - Math.min(...a);
+  assert.ok(range(filtered) < range(raw) / 3);
+});
+test('capture averages future samples over at least 1.5 seconds', () => {
+  const e = ready(); assert.equal(e.start('camber', 3000), true);
+  feed(e, 3020, 4400); assert.equal(e.takeOutcome(), null);
+  feed(e, 4420, 4540); const r = e.takeOutcome();
+  assert.equal(r.ok, true); assert.ok(r.duration >= 1500); near(r.value, 2);
+  assert.ok(r.count >= 15); near(r.t, 3770, 20);
+});
+test('averaged zero uses same raw capture path', () => {
+  const e = ready({ gamma: () => 1.125 }); e.start('camber', 3000);
+  feed(e, 3020, 4540, { gamma: () => 1.125 }); near(e.takeOutcome().value, 1.125);
+});
+test('spike is rejected for capture even when median hides it on display', () => {
+  const e = ready(); e.start('camber', 3000);
+  feed(e, 3020, 3020, { gamma: () => 5 });
+  assert.equal(e.takeOutcome().ok, false); assert.equal(e.status('camber', 3020).ready, false);
+});
+test('motion excursion between UI refreshes aborts capture', () => {
+  const e = ready(); e.start('camber', 3000);
+  e.motionSample(3005, 8, .01); e.motionSample(3010, 0, 0);
+  assert.equal(e.takeOutcome().ok, false);
+});
+test('stale angle stream cancels capture and blanks display', () => {
+  const e = ready(); e.start('camber', 3000); e.tick(3400);
+  assert.equal(e.takeOutcome().ok, false); assert.equal(e.status('camber', 3400).value, null);
+});
+test('angle recovery cannot reuse stale dwell', () => {
+  const e = ready(); feed(e, 3600, 4000);
+  assert.equal(e.status('camber', 4000).ready, false);
+});
+test('stale rotation data prevents capture despite fresh angles', () => {
+  const e = ready(); for (let t = 3020; t <= 4000; t += 20) e.orientation(t, 2, 0);
+  assert.equal(e.start('camber', 4000), false);
+});
+test('missing rotation never becomes zero motion', () => {
+  const e = ready({ rotation: null }); assert.equal(e.start('camber', 3000), false);
+});
+test('missing acceleration is explicitly marked limited', () => {
+  const e = ready({ acceleration: null }); assert.equal(e.status('camber', 3000).fullMotion, false);
+  e.start('camber', 3000); feed(e, 3020, 4540, { acceleration: null });
+  assert.equal(e.takeOutcome().fullMotion, false);
+});
+test('unavailable yaw does not fabricate a toe measurement', () => {
+  const e = ready({ alpha: () => null }); assert.equal(e.start('yaw', 3000), false);
+  assert.equal(e.status('camber', 3000).ready, true);
+});
+test('wraparound averages near zero, never 180 degrees', () => {
+  const o = { alpha: t => (360 + .02 * Math.sin(t / 50)) % 360 };
+  const e = ready(o); assert.equal(e.start('yaw', 3000), true);
+  feed(e, 3020, 4540, o); near(e.takeOutcome().value, 0);
+});
+test('slow drift is detected even with low short-term noise', () => {
+  const e = ready({ alpha: t => t / 1000 * .12 });
+  assert.equal(e.status('yaw', 3000).ready, false);
+});
+test('readiness hysteresis tolerates small motion boundary chatter', () => {
+  const e = ready(); e.motionSample(3020, .75, .01);
+  assert.equal(e.status('camber', 3020).ready, true);
+  e.motionSample(3040, 1.2, .01); assert.equal(e.status('camber', 3040).ready, false);
+});
+test('display hysteresis holds a rounding boundary but tracks real change', () => {
+  const d = new Display(); near(d.update(1.004), 1);
+  near(d.update(1.006), 1); near(d.update(1.014), 1.01);
+  near(d.update(2), 2); assert.equal(d.update(null), null);
+});
+test('time weights do not let a sensor burst dominate capture', () => {
+  const s = stats([{t:0,v:0},{t:1,v:1},{t:2,v:1},{t:1000,v:1}]);
+  near(s.mean, .9995, .00001); near(s.t, 500, .00001);
+});
+test('capture and smoothing work at 10, 30, 60 and 100 Hz', () => {
+  for (const dt of [100, 1000 / 30, 1000 / 60, 10]) {
+    const e = new Engine(); let t = 0;
+    for (; t < 3200; t += dt) feed(e, t, t, { gamma: () => 2, dt });
+    assert.equal(e.start('camber', t - dt), true);
+    for (const end = t + 1800; t < end; t += dt) feed(e, t, t, { gamma: () => 2, dt });
+    const r = e.takeOutcome(); assert.equal(r.ok, true); near(r.value, 2);
+  }
+});
+test('reset clears captures and both orientation histories', () => {
+  const e = ready(); e.start('yaw', 3000); e.reset();
+  assert.equal(e.capture, null); assert.equal(e.takeOutcome(), null);
+  assert.equal(e.status('yaw', 3020).value, null);
+});
+test('toe interpolation uses capture midpoint times, wrap and wheel polarity', () => {
+  const s = {value:359.9,t:0}, w = {value:.15,t:2000}, e = {value:.1,t:4000};
+  near(correctedToe(s,w,e,'FL').toe, -.15);
+  near(correctedToe(s,w,e,'FR').toe, .15);
+  near(correctedToe(s,w,e,'FL',true).toe, .15);
+  near(correctedToe(s,w,e,'FL').drift, .2);
+});
+test('one large step follows promptly but cannot be captured while settling', () => {
+  const e = ready(); feed(e, 3020, 3200, { gamma: () => 5 });
+  assert.equal(e.start('camber', 3200), false);
+  feed(e, 3220, 3800, { gamma: () => 5 }); near(e.status('camber', 3800).value, 5, .08);
+});
